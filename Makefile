@@ -15,6 +15,7 @@ STD = c99
 DBG = -ggdb -fsanitize-cfi-cross-dso
 
 ## Flags used to build under Clang/LLVM
+## Not all flags exist or mean the same for all compilers
 CLANG_WARN = -Wextra -Wall -Wparentheses -Weverything -pedantic
 CLANG_LINK = -fuse-ld=lld-devel -Wl,--gc-sections,--icf=all
 CLANG_CFLAGS = -std=${STD} -Oz -fpic -fpie -fPIC -fPIE -z relro -z combreloc -z now -pipe \
@@ -56,7 +57,11 @@ help:
 	@printf "\tDVCS targets: %s\n" ${DVCS_TARGETS}
 	@printf "\tControl targets: %s\n" ${CTRL_TARGETS}
 	@printf "\nCompilation settings:\n"
-	@printf "\tClang: %s\n" "${CLANG_FILES}"
+	@printf "\tSources: %s\n" "${SRCS}"
+	@printf "\tClang: %s\n" "${CLANG_FLAGS}"
+	@printf "\tInstall to: %s\n" "${PREFIX}${DESTDIR}"
+	@printf "\tCompiler: %s\n" "${CC}"
+	@printf "\nTo change these settings run \`make config\` or \`%s Makefile\`\n" "${EDITOR}"
 
 check: ${SRCS}
 	@clang-tidy-devel -checks=* $?
@@ -84,3 +89,15 @@ commit:
 
 status: 
 	@${DVCS} status
+
+config:
+	@$(EDITOR) Makefile
+
+uninstall:
+	@echo "This target is not yet ready"
+
+purge:
+	@echo "This target is not yet ready"
+
+clean:
+	@echo "This target is not yet ready"
