@@ -67,7 +67,7 @@ extern bool dbg;
 
 /* Hopefully this is correct */
 int cook(uint8_t * restrict flags, const char ** restrict argstr);
-static void inline usage(void);
+inline static void usage(void);
 
 /* 
  * The layout for uint8_t flags is as follows:
@@ -137,7 +137,7 @@ main(int ac, char **av) {
 	return(retc);
 }
 
-static void inline
+inline static void 
 usage(void) {
 	fprintf(stdout,"%s: A simple, local definition database\n", __progname);
 	return; /* Gracefully return to caller */

@@ -33,6 +33,7 @@
 
 #define NOMBRE_H
 #include <stdint.h>
+#include <sqlite3.h>
 
 /* Simple not implemented message */
 #define NOTIMP(a) fprintf(stderr,"-%c is not yet implemented!\n",a)
@@ -42,3 +43,31 @@
 
 /* Create a "new" type called "byte" */
 typedef uint8_t byte;
+
+/* Define the values of the subcommonds */
+typedef enum subcom_t {
+	lookup = 0,  /* Most likely command, look up given term */
+	define = 1,  /* Add a definition */
+	search = 2,  /* Perform a keyword search */
+	verify = 4,  /* Run validation tests */
+	initdb = 5,  /* Initialize database */
+	import = 6,  /* Import definitions from file */
+	export = 7,  /* Export definitons to file */
+	dumpdb = 8,  /* Dump contents to stdout */
+	addsrc = 9,  /* Add an entry for the definition source */
+	update = 10, /* Update a definition */
+	vquery = 11, /* Lookup with sources */
+	catscn = 12  /* Dump the definitions for the given category to stdout */
+} subcom;
+
+/* Define data structure for command parsing */
+typedef struct nombre_cmd_t {
+	subcom command;
+	sqlite3 *dbcon; /* database connection */
+	char *dbpath; /* databae path */
+	/* assume we're using ASCII for now */
+	char *cname; /* Category name */
+	char *term; /* Term */
+	char *definition;  /* Collected definition (input only) */
+	char *gensql; /* Generated SQL statement */
+} nomcmd;

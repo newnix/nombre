@@ -19,8 +19,8 @@ DBG = -ggdb -fsanitize-cfi-cross-dso
 CLANG_WARN = -Wextra -Wall -Wparentheses -Weverything -pedantic
 CLANG_LINK = -fuse-ld=lld-devel -Wl,--gc-sections,--icf=all
 CLANG_CFLAGS = -std=${STD} -Oz -fpic -fpie -fPIC -fPIE -z relro -z combreloc -z now -pipe \
-							 -fvectorize -fstack-protector -fstrict-enum -fstrict-return -fstack-protector-strong \
-							 -fmerge-all-constants -fstack-protector-all -On -fstrict-aliasing
+							 -fvectorize -fstack-protector -fstrict-enums -fstrict-return -fstack-protector-strong \
+							 -fmerge-all-constants -fstack-protector-all -Qn -fstrict-aliasing
 CLANG_FLAGS = ${CLANG_CFLAGS} ${CLANG_WARN} ${CLANG_LINK}
 
 ## Flags used to build under GCC
@@ -67,12 +67,12 @@ check: ${SRCS}
 	@clang-tidy-devel -checks=* $?
 
 debug: mkdest ${SRCS}
-	@$(CC) ${DBG} ${CLANG_FLAGS} $? -o ${TARGET}
+	@$(CC) ${DBG} ${CLANG_FLAGS} ${SRCS} -o ${TARGET}
 	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 
 install: mkdest ${SRCS}
-	@$(CC) ${CLANG_FLAGS} $? -o ${TARGET}
+	@$(CC) ${CLANG_FLAGS} ${SRCS} -o ${TARGET}
 	@strip -s ${TARGET}
 	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
@@ -89,6 +89,9 @@ commit:
 
 status: 
 	@${DVCS} status
+
+diff:
+	@${DVCS} diff
 
 config:
 	@$(EDITOR) Makefile
