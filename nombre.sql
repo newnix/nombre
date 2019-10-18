@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS definitions (
 	category integer NOT NULL DEFAULT -1, -- Default everything to "uncategorized" if not specified
 	CHECK (category > -2), -- -1 is the only valid value under 0
 	PRIMARY KEY (term),
-	FOREIGN KEY category REFERENCES categories(id)
+	FOREIGN KEY (category) REFERENCES categories(id)
 );
 
 -- Secondary table if a term has multiple meanings
@@ -36,23 +36,23 @@ CREATE TABLE IF NOT EXISTS altdefs (
 	defno integer NOT NULL DEFAULT 0, -- Should be incremented for each new alternate definition
 	altdef text NOT NULL, -- The actual alternative definition
 	category integer NOT NULL DEFAULT -1, -- same as definitions table
-	FOREIGN KEY term REFERENCES definitions(term),
-	FOREIGN KEY category REFERENCES categories(id)
+	FOREIGN KEY (term) REFERENCES definitions(term),
+	FOREIGN KEY (category) REFERENCES categories(id)
 );
 
 -- Allow storage of reference links/notes 
 -- using the hash of the term and category as a primary key
 -- while still maintaining the term and category as columns
 -- for easier manual querying and use of the search functionality
-CREATE TABLE IF NOT EXISTS references (
+CREATE TABLE IF NOT EXISTS defrefs (
 	idhash blob UNIQUE NOT NULL, -- Hashed combination of the term + category + definition number, used to build a B-tree index
 	defno integer NOT NULL, -- -1 signifies main definition
 	term text NOT NULL, 
 	category integer NOT NULL,
 	source text NOT NULL,
 	PRIMARY KEY (idhash),
-	FOREIGN KEY term REFERENCES definitions(term),
-	FOREIGN KEY category REFERENCES categories(id)
+	FOREIGN KEY (term) REFERENCES definitions(term),
+	FOREIGN KEY (category) REFERENCES categories(id)
 );
 
 -- Initialize the categories table with some default values
