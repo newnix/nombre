@@ -35,6 +35,25 @@
 #include <stdint.h>
 #include <sqlite3.h>
 
+/* 
+ * Default location for the database file to live 
+ * should evaluate to ~/.local/nombre.db
+ * can be overridden by the '-d' flag
+ */
+#define NOMBRE_DB_PREFIX() getenv("HOME")
+/* Set the default mode to 1750 */
+#define NOMBRE_DB_DIRECT_MODE S_ISVTX|S_IRWXU|S_IRGRP|S_IXGRP
+#define NOMBRE_DB_DIRECT "/.local/"
+#define NOMBRE_DB_NAME "nombre.db"
+
+/* Some buffer size settings */
+#define BUFSIZE 4096
+#define PATHMAX 1024
+#define DEFLEN  512
+
+/* Some general return mnemonics */
+#define BADARGS 0x01
+
 /* Simple not implemented message */
 #define NOTIMP(a) fprintf(stderr,"-%c is not yet implemented!\n",a)
 
@@ -60,14 +79,17 @@ typedef enum subcom_t {
 	catscn = 12  /* Dump the definitions for the given category to stdout */
 } subcom;
 
-/* Define data structure for command parsing */
+/* 
+ * Define data structure for command parsing 
+ * It's a bit larger than I'd like, but there only ever needs to be one per invocation
+ * and then we can just pass the pointer around.
+ */
 typedef struct nombre_cmd_t {
 	subcom command;
 	sqlite3 *dbcon; /* database connection */
-	char *dbpath; /* databae path */
-	/* assume we're using ASCII for now */
-	char *cname; /* Category name */
-	char *term; /* Term */
+	char filedata[3][PATHMAX]; /* File argument array holder */
+	/* assume we're using ASCII for now, full UTF-8 will be a stretch goal */
+	char defdata[2][DEFLEN]; /* Fold term/category into single 2D member */
 	char *definition;  /* Collected definition (input only) */
 	char *gensql; /* Generated SQL statement */
 } nomcmd;

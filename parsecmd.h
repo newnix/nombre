@@ -30,3 +30,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+#define NOMBRE_PARSECMD_H
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+
+int parsecmd(nomcmd * restrict cmdbuf, const char ** restrict argstr);

@@ -17,7 +17,7 @@ DBG = -ggdb -fsanitize-cfi-cross-dso
 ## Flags used to build under Clang/LLVM
 ## Not all flags exist or mean the same for all compilers
 CLANG_WARN = -Wextra -Wall -Wparentheses -Weverything -pedantic
-CLANG_LINK = -fuse-ld=lld-devel -Wl,--gc-sections,--icf=all
+CLANG_LINK = -fuse-ld=lld-devel -Wl,-v,--gc-sections,--icf=all
 CLANG_CFLAGS = -std=${STD} -Oz -fpic -fpie -fPIC -fPIE -z relro -z combreloc -z now -pipe \
 							 -fvectorize -fstack-protector -fstrict-enums -fstrict-return -fstack-protector-strong \
 							 -fmerge-all-constants -fstack-protector-all -Qn -fstrict-aliasing
@@ -67,7 +67,7 @@ check: ${SRCS}
 	@clang-tidy-devel -checks=* $?
 
 debug: mkdest ${SRCS}
-	@$(CC) ${DBG} ${CLANG_FLAGS} ${SRCS} -o ${TARGET}
+	@$(CC) -DBUILD_DEBUG ${LIBS} ${INCS} ${DBG} ${CLANG_FLAGS} ${SRCS} -o ${TARGET}
 	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 

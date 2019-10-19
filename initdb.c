@@ -30,3 +30,56 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+#ifndef NOMBRE_INITDB_H
+#include "initdb.h"
+#endif
+
+extern char *__progname;
+extern char **environ;
+extern bool dbg;
+
+int
+nom_getdbn(char * restrict dbnamebuf) {
+	int retc;
+	char *dbprefix;
+	dbprefix = NULL;
+	retc = 0;
+
+	/* It should not be possible to call this function with a NULL dbnamebuf, but JIC... */
+	if (dbnamebuf != NULL && *dbnamebuf == 0) {
+		/* No database name was written, build default */
+		if ((dbprefix = NOMBRE_DB_PREFIX()) != NULL) {
+			retc = snprintf(dbnamebuf, (PATHMAX - 1), "%s%s%s", dbprefix, NOMBRE_DB_DIRECT, NOMBRE_DB_NAME);
+			dbnamebuf[retc] = 0; /* Ensure NUL terminator */
+			retc ^= retc;
+		}
+		/* No real else condition, just assume we were given a valid name */
+	}
+
+	return(retc);
+}
+
+int
+nom_initdb(const char * restrict dbname, const char * restrict initsql) {
+	int retc;
+	retc = 0;
+
+	/* Validate input arguments */
+	if ((dbname == NULL) || (initsql == NULL)) {
+		fprintf(stderr,"[ERR] %s [%s:%u] %s: Given invalid NULL input, returning to caller!\n", __progname, __FILE__, __LINE__, __func__);
+		retc = BADARGS;
+	}
+
+	return(retc);
+}

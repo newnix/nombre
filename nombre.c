@@ -42,10 +42,20 @@
 #endif /* end LINUX */
 #include <unistd.h>
 
+/* 
+ * Use header guards to only pull in information if not already defined 
+ * this inversion on convention will prevent repeated NAMEI calls and reading files
+ * where possible.
+ */
 #ifndef NOMBRE_H
 #include "nombre.h"
 #endif
-
+#ifndef NOMBRE_INITDB_H
+#include "initdb.h"
+#endif
+#ifndef NOMBRE_PARSECMD_H
+#include "parsecmd.h"
+#endif
 /* Define mneonics for the flag values */
 #define HELPME 0x01
 #define DBFILE 0x02
@@ -55,10 +65,9 @@
 #define DBTEST 0x20
 #define RUNDBG 0x40
 
-/* Set our max buffer to a 4k page */
-#define BUFSIZE 4096
-/* File name limits assumed to be 1K or less */
-#define PATHMAX 1024
+/* Some return values for simple things */
+#define INITOK_CUSTOM 0x01
+#define INITOK_DEFAULT 0x02
 
 /* Declare extern/global vars */
 extern char *__progname;
@@ -66,9 +75,14 @@ extern char **environ;
 extern bool dbg;
 
 /* Hopefully this is correct */
-int cook(uint8_t * restrict flags, const char ** restrict argstr);
+int cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict argstr);
 inline static void usage(void);
 
+#ifdef BUILD_DEBUG
+bool dbg = true;
+#else 
+bool dbg = false;
+#endif 
 /* 
  * The layout for uint8_t flags is as follows:
  * 0 0 0 0 0 0 0 0
@@ -87,8 +101,7 @@ int
 main(int ac, char **av) {
 	int retc, ch;
 	uint8_t flags;
-	/* Statically defined 1K buffers for input */
-	char dbname[PATHMAX], initsql[PATHMAX], iofile[PATHMAX]; 
+	nomcmd cmd;
 	ch = retc = 0;
 	flags = 0;
 
@@ -99,15 +112,15 @@ main(int ac, char **av) {
 				break;
 			case 'd':
 				flags |= DBFILE;
-				strlcpy(dbname, optarg, (size_t)PATHMAX);
+				strlcpy(cmd.filedata[0], optarg, (size_t)PATHMAX);
 				break;
 			case 'i':
 				flags |= INTSQL;
-				strlcpy(initsql, optarg, (size_t)PATHMAX);
+				strlcpy(cmd.filedata[1], optarg, (size_t)PATHMAX);
 				break;
 			case 'f':
 				flags |= IOFILE;
-				strlcpy(iofile, optarg, (size_t)PATHMAX);
+				strlcpy(cmd.filedata[2], optarg, (size_t)PATHMAX);
 				break;
 			case 'v':
 				flags |= DBTEST;
@@ -132,9 +145,23 @@ main(int ac, char **av) {
 	/* Update the argument counter and vector pointer to the end of processed arguments */
 	ac -= optind;
 	av += optind;
-	retc = cook(&flags, (const char **)av);
 
-	return(retc);
+	retc = cook(&flags, &cmd, (const char **)av);
+
+	/* XXX: Move this into cook() */
+	switch (retc) {
+		case INITOK_CUSTOM:
+			return(nom_initdb(cmd.filedata[0], cmd.filedata[1]));
+		case INITOK_DEFAULT:
+			if ((retc = nom_getdbn(cmd.filedata[0])) == 0) {
+				retc = nom_initdb(cmd.filedata[0], cmd.filedata[1]);
+				return(retc);
+			} else {
+				return(retc);
+			}
+		default:
+			return(retc);
+	}
 }
 
 inline static void 
@@ -148,7 +175,7 @@ usage(void) {
  * available here to be passed into the relevant functions further down the stack
  */
 int
-cook(uint8_t * restrict flags, const char ** restrict argstr) {
+cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	int retc;
 	retc = 0;
 
@@ -162,6 +189,10 @@ cook(uint8_t * restrict flags, const char ** restrict argstr) {
 		}
 		switch (*flags & (0x8FFF)) {
 			case (DBFILE|DBINIT|INTSQL):
+				return(INITOK_CUSTOM); /* We basically discard the argstr and bootstrap the database as defined in the files */
+				break;
+			default: /* Default case is to assume we're performing some action via subcommands */
+				retc = parsecmd(cmdbuf, argstr);
 				break;
 		}
 	}

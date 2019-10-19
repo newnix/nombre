@@ -30,3 +30,38 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#ifndef NOMBRE_PARSECMD_H
+#include "parsecmd.h"
+#endif
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+
+extern char *__progname;
+extern char **environ;
+extern bool dbg;
+
+/* 
+ * This function handles some of the basic handling and construction of the command buffer
+ * values. There will be helper functions to prevent excessive complexity in this function.
+ */
+int
+parsecmd(nomcmd * restrict cmdbuf, const char ** restrict argstr){
+	int retc;
+	retc = 0;
+	
+	/* Simple test to ensure we didn't get NULL pointers somehow */
+	if ((cmdbuf == NULL) || (argstr == NULL)) {
+		fprintf(stderr,"[ERR] %s [%s:%u] %s: Invalid input recieved, returning to caller!\n", __progname, __FILE__, __LINE__, __func__);
+		retc = BADARGS;
+	}
+	return(retc);
+}

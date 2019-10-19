@@ -30,3 +30,12 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+
+#define NOMBRE_INITDB_H
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+
+int nom_getdbn(char * restrict dbnamebuf);
+int nom_testdbpath(const char * restrict dbname);
+int nom_initdb(const char * restrict dbname, const char * restrict initsql);
