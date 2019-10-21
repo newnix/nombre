@@ -58,12 +58,17 @@ nom_getdbn(char * restrict dbnamebuf) {
 
 	/* It should not be possible to call this function with a NULL dbnamebuf, but JIC... */
 	if (dbnamebuf != NULL && *dbnamebuf == 0) {
-		/* No database name was written, build default */
-		if ((dbprefix = NOMBRE_DB_PREFIX()) != NULL) {
+		/* No database name was written, check environment */
+		if ((dbprefix = getenv(NOMBRE_ENV_VAR)) != NULL) {
+			retc = snprintf(dbnamebuf, (PATHMAX - 1), "%s", dbprefix);
+			dbnamebuf[retc] = 0;
+			retc ^= retc;
+		/* Environmental variable not found, construct default */
+		} else if ((dbprefix = NOMBRE_DB_PREFIX()) != NULL) {
 			retc = snprintf(dbnamebuf, (PATHMAX - 1), "%s%s%s", dbprefix, NOMBRE_DB_DIRECT, NOMBRE_DB_NAME);
 			dbnamebuf[retc] = 0; /* Ensure NUL terminator */
 			retc ^= retc;
-		}
+		} 
 		/* No real else condition, just assume we were given a valid name */
 	}
 

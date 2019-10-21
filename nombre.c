@@ -63,11 +63,6 @@
 #define IOFILE 0x08
 #define INTSQL 0x10
 #define DBTEST 0x20
-#define RUNDBG 0x40
-
-/* Some return values for simple things */
-#define INITOK_CUSTOM 0x01
-#define INITOK_DEFAULT 0x02
 
 /* Declare extern/global vars */
 extern char *__progname;
@@ -93,7 +88,7 @@ bool dbg = false;
  * | | | | \- Import/Export file
  * | | | \- Initialization SQL
  * | | \- Self-test
- * | \- "Debug" 
+ * | \- Reserved
  * \- Reserved
  */
 
@@ -129,7 +124,6 @@ main(int ac, char **av) {
 				flags |= DBINIT;
 				break;
 			case 'D':
-				flags |= RUNDBG;
 				dbg = true;
 				break;
 
@@ -147,26 +141,25 @@ main(int ac, char **av) {
 	av += optind;
 
 	retc = cook(&flags, &cmd, (const char **)av);
-
-	/* XXX: Move this into cook() */
-	switch (retc) {
-		case INITOK_CUSTOM:
-			return(nom_initdb(cmd.filedata[0], cmd.filedata[1]));
-		case INITOK_DEFAULT:
-			if ((retc = nom_getdbn(cmd.filedata[0])) == 0) {
-				retc = nom_initdb(cmd.filedata[0], cmd.filedata[1]);
-				return(retc);
-			} else {
-				return(retc);
-			}
-		default:
-			return(retc);
-	}
+	return(retc);
 }
 
 inline static void 
 usage(void) {
 	fprintf(stdout,"%s: A simple, local definition database\n", __progname);
+	fprintf(stdout,"\t%s [-DIv] -d database -i initfile -f I/O file [subcommand] term...\n"
+			"\t  -D Enable run-time debug printouts\n"
+			"\t  -I Initialize the database\n"
+			"\t  -v Perform a verification test on the database\n"
+			"\t  -i Initialization SQL script to use (only useful with -I)\n"
+			"\t  -d The location of the nombre database (default: %s%s%s)\n"
+			"\t  -f Use the given file for import/export operations\n\n"
+			"Subcommands:\n"
+			"\t(def)ine: Look up a definition\n"
+			"\t(add)def: Add a new definition to the database\n"
+			"\t(key)word: Perform a keyword search on saved entries\n"
+			,__progname, "~", NOMBRE_DB_DIRECT, NOMBRE_DB_NAME);
+
 	return; /* Gracefully return to caller */
 }
 
@@ -179,22 +172,50 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 	int retc;
 	retc = 0;
 
+	if (dbg) {
+		fprintf(stderr, "[DBG] %s [%s:%u] %s: Current flag setting: %u\n", __progname, __FILE__, __LINE__, __func__, *flags);
+	}
+
 	/* Test the status of the bits in *flags */
 	if (((*flags & HELPME) == HELPME) || (*flags == HELPME)) {
 		usage();
 		return(retc);
 	} else {
-		if (dbg) {
-			fprintf(stderr, "DBG: %s [%s:%u] %s: Current flag setting: %u\n", __progname, __FILE__, __LINE__, __func__, *flags);
-		}
 		switch (*flags & (0x8FFF)) {
+		/*
+		 * Initialize the database at the given location and with the given SQL file
+		 */
 			case (DBFILE|DBINIT|INTSQL):
-				return(INITOK_CUSTOM); /* We basically discard the argstr and bootstrap the database as defined in the files */
+				retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1]);
 				break;
-			default: /* Default case is to assume we're performing some action via subcommands */
+			/*
+			 * Initialize the database, but use the default construction method or environmental variable
+			 */
+			case (DBINIT|INTSQL):
+				if ((retc = nom_getdbn(cmdbuf->filedata[0])) == NOM_OK) {
+					retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1]);
+				} else {
+					fprintf(stderr, "[ERR] %s [%s:%u] %s: Failed to get the database name!\n", __progname, __FILE__, __LINE__, __func__);
+				}
+				break;
+			/*
+			 * Manually set the database location rather than constructing from defaults
+			 * NOTE: really doesn't deserve its own case
+			 */
+			case (DBFILE):
+				retc = parsecmd(cmdbuf, argstr);
+				break;
+			/*
+			 * No behaviour changing flags passed, default behaviour
+			 */
+			default: 
 				retc = parsecmd(cmdbuf, argstr);
 				break;
 		}
+	}
+
+	if (dbg){
+		fprintf(stderr, "[DBG] %s [%s:%u] %s: Returinng %d to caller\n", __progname, __FILE__, __LINE__, __func__, retc);
 	}
 	return(retc);
 }

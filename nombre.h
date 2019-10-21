@@ -45,6 +45,7 @@
 #define NOMBRE_DB_DIRECT_MODE S_ISVTX|S_IRWXU|S_IRGRP|S_IXGRP
 #define NOMBRE_DB_DIRECT "/.local/"
 #define NOMBRE_DB_NAME "nombre.db"
+#define NOMBRE_ENV_VAR "NOMBREDB"
 
 /* Some buffer size settings */
 #define BUFSIZE 4096
@@ -52,6 +53,7 @@
 #define DEFLEN  512
 
 /* Some general return mnemonics */
+#define NOM_OK  0x00
 #define BADARGS 0x01
 
 /* Simple not implemented message */
