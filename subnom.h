@@ -30,3 +30,11 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+
+#define NOMBRE_SUBNOM_H
+
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+
+int buldcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr);

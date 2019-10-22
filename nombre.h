@@ -46,6 +46,7 @@
 #define NOMBRE_DB_DIRECT "/.local/"
 #define NOMBRE_DB_NAME "nombre.db"
 #define NOMBRE_ENV_VAR "NOMBREDB"
+#define DIRSEP  '/'
 
 /* Some buffer size settings */
 #define BUFSIZE 4096
@@ -54,7 +55,8 @@
 
 /* Some general return mnemonics */
 #define NOM_OK  0x00
-#define BADARGS 0x01
+#define BADARGS 0xFF /* Should evaluate to -1 when used as a signed integer */
+#define NOM_USECWD 0xFE /* Should evaluate to -2 */
 
 /* Simple not implemented message */
 #define NOTIMP(a) fprintf(stderr,"-%c is not yet implemented!\n",a)

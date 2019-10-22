@@ -30,3 +30,27 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+
+
+#include <err.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+#ifndef NOMBRE_SUBNOM_H
+#include "subnom.h"
+#endif
+
+int
+buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
+	int retc;
+	retc = 0;
+
+	if ((cmdbuf == NULL) || (argstr == NULL)) {
+		retc = BADARGS;
+	}
+	return(retc);
+}

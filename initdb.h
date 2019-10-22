@@ -32,10 +32,30 @@
  */
 
 #define NOMBRE_INITDB_H
+
+/* Needed for 'size_t' datatype */
+#include <stdlib.h>
+
 #ifndef NOMBRE_H
 #include "nombre.h"
 #endif
 
+/* Initdb specific mnemonics */
+#define UID_OK 0x01
+#define GID_OK 0x02
+#define URW_OK 0x04
+#define GRW_OK 0x08
+#define UMODOK 0x16
+#define GMODOK 0x32
+#define UMODE  S_IRWXU
+/* OK to foll on group permissions if we have RWX */
+#define GMODE  S_IRWXG
+/* Two possible success conditions */
+#define UDIR_OK (UID_OK|URW_OK)
+#define GDIR_OK (GID_OK|GRW_OK)
+
 int nom_getdbn(char * restrict dbnamebuf);
 int nom_testdbpath(const char * restrict dbname);
 int nom_initdb(const char * restrict dbname, const char * restrict initsql);
+int nom_dirtest(const char * restrict dbname, const size_t dbanmelen);
+int nom_mkdirs(const char * restrict dbname, const size_t diroffset);
