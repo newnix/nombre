@@ -81,7 +81,7 @@ nom_getdbn(char * restrict dbnamebuf) {
 }
 
 int
-nom_initdb(const char * restrict dbname, const char * restrict initsql) {
+nom_initdb(const char * restrict dbname, const char * restrict initsql, nomcmd *cmdbuf) {
 	int retc;
 	size_t dblen;
 	dblen = 0;
@@ -102,6 +102,12 @@ nom_initdb(const char * restrict dbname, const char * restrict initsql) {
 		 * retc should now be the number of characters backtracked to reach the directory
 		 */
 		retc = nom_mkdirs(dbname, (dblen - retc));
+	} else {
+		retc = sqlite3_open_v2(dbname, &cmdbuf->dbcon, SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE|SQLITE_OPEN_FULLMUTEX|SQLITE_OPEN_PRIVATECACHE, NULL);
+		if (retc == SQLITE_OK) {
+			/* Run the initialization SQL script */
+			retc = run_initsql(cmdbuf);
+		}
 	}
 
 	return(retc);
@@ -179,6 +185,20 @@ nom_mkdirs(const char * dbname, const size_t diroffset) {
 		fprintf(stderr,"[ERR] %s [%s:%u] %s: Given invalid input!\n", __progname, __FILE__, __LINE__, __func__);
 		/* XXX: This should not be a positive integer to report errors */
 		retc = BADARGS;
+	}
+	return(retc);
+}
+
+int
+run_initsql(const nomcmd * cmdbuf) {
+	int retc;
+	retc = 0;
+
+	/* Validate non-null pointer */
+	if (cmdbuf == NULL) {
+		fprintf(stderr, "[ERR] %s [%s:%u] %s: Invalid command structure!\n", __progname, __FILE__, __LINE__, __func__);
+		retc = BADARGS;
+		return(retc);
 	}
 	return(retc);
 }

@@ -56,6 +56,7 @@
 
 int nom_getdbn(char * restrict dbnamebuf);
 int nom_testdbpath(const char * restrict dbname);
-int nom_initdb(const char * restrict dbname, const char * restrict initsql);
+int nom_initdb(const char * restrict dbname, const char * restrict initsql, nomcmd *cmdbuf);
 int nom_dirtest(const char * restrict dbname, const size_t dbanmelen);
 int nom_mkdirs(const char * restrict dbname, const size_t diroffset);
+int run_initsql(const nomcmd * cmdbuf);

@@ -186,14 +186,14 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 		 * Initialize the database at the given location and with the given SQL file
 		 */
 			case (DBFILE|DBINIT|INTSQL):
-				retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1]);
+				retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1], cmdbuf);
 				break;
 			/*
 			 * Initialize the database, but use the default construction method or environmental variable
 			 */
 			case (DBINIT|INTSQL):
 				if ((retc = nom_getdbn(cmdbuf->filedata[0])) == NOM_OK) {
-					retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1]);
+					retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1], cmdbuf);
 				} else {
 					fprintf(stderr, "[ERR] %s [%s:%u] %s: Failed to get the database name!\n", __progname, __FILE__, __LINE__, __func__);
 				}
