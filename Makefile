@@ -9,6 +9,7 @@ DVCS ?= fossil
 ## there should not be any OS or compiler dependant code in this project
 ## NOTE: This is Clang 8.0.0 at the time of starting this project
 CC = clang-devel
+LD = lld-devel
 STD = c99
 
 ## Additional flags used in "debug" builds
@@ -17,10 +18,12 @@ DBG = -ggdb -fsanitize-cfi-cross-dso
 ## Flags used to build under Clang/LLVM
 ## Not all flags exist or mean the same for all compilers
 CLANG_WARN = -Wextra -Wall -Wparentheses -Weverything -pedantic
-CLANG_LINK = -fuse-ld=lld-devel -Wl,-v,--gc-sections,--icf=all
+CLANG_LINK = -fuse-ld=${LD} -Wl,-v,--gc-sections,--icf=all
 CLANG_CFLAGS = -std=${STD} -Oz -fpic -fpie -fPIC -fPIE -z relro -z combreloc -z now -pipe \
 							 -fvectorize -fstack-protector -fstrict-enums -fstrict-return -fstack-protector-strong \
-							 -fmerge-all-constants -fstack-protector-all -Qn -fstrict-aliasing
+							 -fmerge-all-constants -fstack-protector-all -Qn -fstrict-aliasing \
+							 -ffunction-sections -fdata-sections
+
 CLANG_FLAGS = ${CLANG_CFLAGS} ${CLANG_WARN} ${CLANG_LINK}
 
 ## Flags used to build under GCC

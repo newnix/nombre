@@ -100,6 +100,7 @@ main(int ac, char **av) {
 	ch = retc = 0;
 	flags = 0;
 
+	opterr ^= opterr;
 	while ((ch = getopt(ac, av, "d:i:f:vDIh")) != -1) {
 		switch (ch) {
 			case 'h':
@@ -129,7 +130,7 @@ main(int ac, char **av) {
 
 			/* This may need to be redone later */
 			case '?':
-				BADFLAG(ch);
+				BADFLAG(av[(optind - 1)]);
 				break;
 			default:
 				break;
@@ -173,7 +174,8 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 	retc = 0;
 
 	if (dbg) {
-		fprintf(stderr, "[DBG] %s [%s:%u] %s: Current flag setting: %u\n", __progname, __FILE__, __LINE__, __func__, *flags);
+		NOMDBG("Current flag setting: %u\n", *flags);
+		//fprintf(stderr, "[DBG] %s [%s:%u] %s: Current flag setting: %u\n", __progname, __FILE__, __LINE__, __func__, *flags);
 	}
 
 	/* Test the status of the bits in *flags */

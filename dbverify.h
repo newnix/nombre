@@ -30,3 +30,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+#define NOMBRE_VERIFY_H
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+int runtests(const nomcmd * cmdbuf);

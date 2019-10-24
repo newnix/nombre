@@ -62,7 +62,13 @@
 #define NOTIMP(a) fprintf(stderr,"-%c is not yet implemented!\n",a)
 
 /* Simple message that the flag isn't recognized */
-#define BADFLAG(a) fprintf(stderr,"-%c is not a valid flag!\n",a)
+#define BADFLAG(a) fprintf(stderr,"[ERR] %s: \'%s\' is not a valid flag!\n",__progname, a)
+
+/* Status reporting macros */
+#define NOMDBG(fstr, ...) fprintf(stderr, "[DBG] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define NOMINF(fstr, ...) fprintf(stderr, "[INF] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define NOMWRN(fstr, ...) fprintf(stderr, "[WRN] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
+#define NOMERR(fstr, ...) fprintf(stderr, "[ERR] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
 
 /* Create a "new" type called "byte" */
 typedef uint8_t byte;
@@ -97,3 +103,12 @@ typedef struct nombre_cmd_t {
 	char *definition;  /* Collected definition (input only) */
 	char *gensql; /* Generated SQL statement */
 } nomcmd;
+
+/* 
+ * Add macros to help with array indexing
+ */
+#define NOMBRE_DBFILE 0x00
+#define NOMBRE_INITSQL 0x01
+#define NOMBRE_IOFILE 0x02
+#define NOMBRE_DBTERM 0x00
+#define NOMBRE_DBCATG 0x01

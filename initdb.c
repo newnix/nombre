@@ -33,12 +33,15 @@
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+/* Needed for mmap(2) */
+#include <sys/mman.h>
 /* Needed for stat(2) */
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -191,8 +194,15 @@ nom_mkdirs(const char * dbname, const size_t diroffset) {
 
 int
 run_initsql(const nomcmd * cmdbuf) {
-	int retc;
+	int retc, sqlfd;
+	size_t sqllen;
+	char *sqlmap, *sqlend, *sqltail;
+	struct stat sqlstat;
+	sqlite3_stmt *stmt;
 	retc = 0;
+	sqllen = 0;
+	sqlmap = NULL; sqlend = NULL; sqltail = NULL;
+	stmt = NULL;
 
 	/* Validate non-null pointer */
 	if (cmdbuf == NULL) {
@@ -200,5 +210,30 @@ run_initsql(const nomcmd * cmdbuf) {
 		retc = BADARGS;
 		return(retc);
 	}
+	if ((retc = stat(cmdbuf->filedata[NOMBRE_INITSQL], &sqlstat)) != NOM_OK) {
+		/* Unable to continue at this point, bailing out */
+		fprintf(stderr,"[ERR] %s [%s:%u] %s: Fatal error: %s\n", __progname, __FILE__, __LINE__, __func__, strerror(errno));
+		return(retc);
+	} else {
+		/* Ideally validate that we can read the file, but for now it's important to grab the size */
+		sqllen = sqlstat.st_size;
+	}
+	if ((sqlfd = open(cmdbuf->filedata[NOMBRE_INITSQL], O_RDONLY|O_NONBLOCK|O_EXLOCK|O_CLOEXEC)) != NOM_OK) {
+		/* Should not be possible after testing for existence via stat(2) */
+	}
+	/* Now create an mmap(2)'d buffer for the file */
+	if ((sqlmap = mmap(NULL, sqllen, PROT_READ, sqlfd, MAP_PRIVATE, (off_t)0)) == NULL) {
+		fprintf(stderr,"[ERR] %s [%s:%u] %s: Unable to map %s! (%s)\n", 
+				__progname,__FILE__,__LINE__,__func__,cmdbuf->filedata[NOMBRE_INITSQL], strerror(errno));
+		return(errno);
+	} else {
+		/* Success, now prop up the end point so we can loop easily */
+		sqlend = sqlmap + sqllen;
+		retc = sqlite3_prepare_v2(cmdbuf->dbcon, sqlmap, -1, &stmt, (const char **)&sqltail);
+	}
+	/* This requires that we've actually compiled a SQL statement before entering the loop */
+	for (; (retc != SQLITE_OK && retc != SQLITE_DONE) && (sqlmap < sqlend); sqlmap = (char * const)sqltail) {
+	}
+	/* Look at the feasibility of using int_fastN_t for the loop iteration */
 	return(retc);
 }

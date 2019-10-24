@@ -30,3 +30,34 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
+
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <sqlite3.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#ifndef NOMBRE_H
+#include "nombre.h"
+#endif
+#ifndef NOMBRE_VERIFY_H
+#include "dbverify.h"
+#endif
+
+extern char *__progname;
+extern char **environ;
+extern bool dbg;
+
+int runtests(const nomcmd * cmdbuf) {
+	int retc;
+	retc = 0;
+	if (cmdbuf == NULL) {
+		NOMERR("%s", "Given NULL pointer, this should not be possible!\n");
+	}
+	return(retc);
+}
