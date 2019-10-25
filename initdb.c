@@ -57,6 +57,12 @@ extern char *__progname;
 extern char **environ;
 extern bool dbg;
 
+/* 
+ * nom_getdbn()
+ * If the buffer is not already full, attempt to find the name
+ * of the database by looking up the environmental variable "NOMBREDB"
+ * or construct the default database path name and write to the buffer.
+ */
 int
 nom_getdbn(char * restrict dbnamebuf) {
 	int retc;
@@ -79,7 +85,6 @@ nom_getdbn(char * restrict dbnamebuf) {
 		} 
 		/* No real else condition, just assume we were given a valid name */
 	}
-
 	return(retc);
 }
 
@@ -89,10 +94,14 @@ nom_initdb(const char * restrict dbname, const char * restrict initsql, nomcmd *
 	size_t dblen;
 	dblen = 0;
 	retc = 0;
+	
+	if (dbg) {
+		NOMDBG("Entering with dbname = %s, initsql = %s, cmdbuf = %p\n", dbname, initsql, (void *)cmdbuf);
+	}
 
 	/* Validate input arguments, though it should not be possible to pass a NULL pointer */
 	if ((dbname == NULL) || (initsql == NULL)) {
-		fprintf(stderr,"[ERR] %s [%s:%u] %s: Given invalid NULL input, returning to caller!\n", __progname, __FILE__, __LINE__, __func__);
+		NOMERR("Given invalid input, returning %d to caller!\n", BADARGS);
 		retc = BADARGS;
 	}
 
@@ -110,7 +119,18 @@ nom_initdb(const char * restrict dbname, const char * restrict initsql, nomcmd *
 		if (retc == SQLITE_OK) {
 			/* Run the initialization SQL script */
 			retc = run_initsql(cmdbuf);
+		} else {
+			/* Error in opening the database */
+			NOMERR("Unable to open %s (%s)!\n", dbname, sqlite3_errstr(retc));
 		}
+	}
+
+	/* Close the database if it was created */
+	if (retc == NOM_OK) {
+		sqlite3_close(cmdbuf->dbcon);
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
 	}
 
 	return(retc);
@@ -128,27 +148,32 @@ nom_dirtest(const char * dbname, const size_t dbnamelen) {
 	userid = 0;
 	grpid = 0;
 	fstest = 0;
+
 	/* This cast should be fine, as the max buffer size is less than INT_MAX */
 	dirsep = (int)dbnamelen;
+
+	if (dbg) {
+		NOMDBG("Entering with dbname = %s, dbnamelen = %lu\n", dbname, dbnamelen);
+	}
 	
 	/* Should not be possible to get a NULL pointer, but test anyway */
 	if ((dbname == NULL) || (dbnamelen == 0)) {
-		fprintf(stderr,"[ERR] %s [%s:%u] %s: Given invalid input!\n", __progname, __FILE__, __LINE__, __func__);
-		/* XXX: This should not be a positive integer to report errors */
+		NOMERR("%s","Invalid input! Baliing out!\n");
 		retc = BADARGS;
 		return(retc);
 	}
+
 	/* Trace back to the directory separator */
 	while (dirsep --> 0) {
 		if ((dbname[dirsep] ^ DIRSEP) == 0) {
-			strlcpy(dbdir, dbname, (size_t)dirsep);
+			strlcpy(dbdir, dbname, ((size_t)dirsep + 1)); /* Add 1 to copy length, attempt to avoid truncation */
 			userid = getuid();
 			/* Group info tests could be improved, currently just using the primary GID */
 			grpid = getgid();
 
 			/* Now validate the direcory given actually exists and is writeable by the current user */
 			if ((retc = stat(dbdir, &dbdirstat)) != 0) {
-				fprintf(stderr,"[ERR] %s [%s:%u] %s: %s\n", __progname, __FILE__, __LINE__, __func__, strerror(errno));
+				NOMERR("%s: %s!\n", dbdir, strerror(errno));
 				retc = errno;
 				return(retc);
 			} else {
@@ -175,6 +200,10 @@ nom_dirtest(const char * dbname, const size_t dbnamelen) {
 	}
 	/* If we reach the end, there's no parent directory to check, use CWD */
 	retc = NOM_USECWD;
+
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
+	}
 	return(retc);
 }
 
@@ -210,30 +239,60 @@ run_initsql(const nomcmd * cmdbuf) {
 		retc = BADARGS;
 		return(retc);
 	}
+
 	if ((retc = stat(cmdbuf->filedata[NOMBRE_INITSQL], &sqlstat)) != NOM_OK) {
 		/* Unable to continue at this point, bailing out */
-		fprintf(stderr,"[ERR] %s [%s:%u] %s: Fatal error: %s\n", __progname, __FILE__, __LINE__, __func__, strerror(errno));
+		NOMERR("Fatal Error: %s\n", strerror(errno));
 		return(retc);
 	} else {
 		/* Ideally validate that we can read the file, but for now it's important to grab the size */
 		sqllen = sqlstat.st_size;
 	}
-	if ((sqlfd = open(cmdbuf->filedata[NOMBRE_INITSQL], O_RDONLY|O_NONBLOCK|O_EXLOCK|O_CLOEXEC)) != NOM_OK) {
+
+	/* This test is different, as we expect sqlfd to be a nonzero positive integer */
+	if ((sqlfd = open(cmdbuf->filedata[NOMBRE_INITSQL], O_RDONLY|O_NONBLOCK|O_EXLOCK|O_CLOEXEC)) <= NOM_OK) {
 		/* Should not be possible after testing for existence via stat(2) */
+		NOMERR("Unable to open %s! (%s)\n", cmdbuf->filedata[NOMBRE_INITSQL], strerror(errno));
+		return(NOM_FIO_FAIL);
 	}
+
 	/* Now create an mmap(2)'d buffer for the file */
 	if ((sqlmap = mmap(NULL, sqllen, PROT_READ, sqlfd, MAP_PRIVATE, (off_t)0)) == NULL) {
-		fprintf(stderr,"[ERR] %s [%s:%u] %s: Unable to map %s! (%s)\n", 
-				__progname,__FILE__,__LINE__,__func__,cmdbuf->filedata[NOMBRE_INITSQL], strerror(errno));
+		NOMERR("Unable to map %s! (%s)\n", cmdbuf->filedata[NOMBRE_INITSQL], strerror(errno));
+		/* Clean up before bailing */
+		close(sqlfd);
 		return(errno);
 	} else {
 		/* Success, now prop up the end point so we can loop easily */
 		sqlend = sqlmap + sqllen;
+		/* Inform the kernel how we intend to use the mmaped file */
+		/* XXX: MADV_NOSYNC may not be portable, fortunately not necessary for functionality */
+		posix_madvise(sqlmap, (size_t)sqllen, POSIX_MADV_SEQUENTIAL|MADV_NOSYNC|POSIX_MADV_WILLNEED);
 		retc = sqlite3_prepare_v2(cmdbuf->dbcon, sqlmap, -1, &stmt, (const char **)&sqltail);
 	}
+
 	/* This requires that we've actually compiled a SQL statement before entering the loop */
 	for (; (retc != SQLITE_OK && retc != SQLITE_DONE) && (sqlmap < sqlend); sqlmap = (char * const)sqltail) {
+		retc = sqlite3_step(stmt);
+		retc = sqlite3_finalize(stmt);
+		retc = sqlite3_prepare_v2(cmdbuf->dbcon, sqlmap, -1, &stmt, (const char **)&sqltail);
+		if (dbg) {
+			NOMDBG("Current Context: %16s\n", sqlmap);
+		} else {
+			fprintf(stdout,".");
+		}
 	}
-	/* Look at the feasibility of using int_fastN_t for the loop iteration */
+	fprintf(stdout,"\n");
+	if (retc != SQLITE_OK && retc != SQLITE_DONE) {
+		/* Likely erroneous end to the loop */
+		NOMWRN("Exited with non-OK status! (%s)\n", sqlite3_errmsg(cmdbuf->dbcon));
+	} else {
+		fprintf(stdout, "\n%s should now be ready to use!\n", cmdbuf->filedata[NOMBRE_DBFILE]);
+	}
+	/* Clean up before we exit */
+	/* Reset the pointerfor our mmap'd data */
+	sqlmap = (sqlend - sqllen);
+	munmap(sqlmap, (size_t)sqllen);
+	close(sqlfd);
 	return(retc);
 }

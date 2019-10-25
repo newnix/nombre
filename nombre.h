@@ -54,9 +54,10 @@
 #define DEFLEN  512
 
 /* Some general return mnemonics */
-#define NOM_OK  0x00
-#define BADARGS 0xFF /* Should evaluate to -1 when used as a signed integer */
-#define NOM_USECWD 0xFE /* Should evaluate to -2 */
+#define NOM_OK  0
+#define BADARGS -1 /* Should evaluate to -1 when used as a signed integer */
+#define NOM_USECWD -2 /* Should evaluate to -2 */
+#define NOM_FIO_FAIL -3
 
 /* Simple not implemented message */
 #define NOTIMP(a) fprintf(stderr,"-%c is not yet implemented!\n",a)
@@ -65,8 +66,9 @@
 #define BADFLAG(a) fprintf(stderr,"[ERR] %s: \'%s\' is not a valid flag!\n",__progname, a)
 
 /* Status reporting macros */
+/* INFO macro meant for general status reporting, so file/line aren't as important */
+#define NOMINF(fstr, ...) fprintf(stdout, "[INF] %s [%s]: " fstr, __progname,  __func__, __VA_ARGS__)
 #define NOMDBG(fstr, ...) fprintf(stderr, "[DBG] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
-#define NOMINF(fstr, ...) fprintf(stderr, "[INF] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
 #define NOMWRN(fstr, ...) fprintf(stderr, "[WRN] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
 #define NOMERR(fstr, ...) fprintf(stderr, "[ERR] %s [%s:%u] %s: " fstr, __progname, __FILE__, __LINE__, __func__, __VA_ARGS__)
 
