@@ -115,6 +115,10 @@ nom_initdb(const char * restrict dbname, const char * restrict initsql, nomcmd *
 		 */
 		retc = nom_mkdirs(dbname, (dblen - retc));
 	} else {
+		if ((retc = sqlite3_initialize()) != SQLITE_OK) {
+			NOMERR("%s Returning %d to caller\n","Unable to ititialize SQLite3 library!", retc);
+			return(retc);
+		}
 		retc = sqlite3_open_v2(dbname, &cmdbuf->dbcon, SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE|SQLITE_OPEN_FULLMUTEX|SQLITE_OPEN_PRIVATECACHE, NULL);
 		if (retc == SQLITE_OK) {
 			/* Run the initialization SQL script */
@@ -166,38 +170,48 @@ nom_dirtest(const char * dbname, const size_t dbnamelen) {
 	/* Trace back to the directory separator */
 	while (dirsep --> 0) {
 		if ((dbname[dirsep] ^ DIRSEP) == 0) {
-			strlcpy(dbdir, dbname, ((size_t)dirsep + 1)); /* Add 1 to copy length, attempt to avoid truncation */
+			strlcpy(dbdir, dbname, (size_t)(dirsep + 1)); /* Add 1 to copy length, attempt to avoid truncation */
 			userid = getuid();
 			/* Group info tests could be improved, currently just using the primary GID */
 			grpid = getgid();
-
-			/* Now validate the direcory given actually exists and is writeable by the current user */
-			if ((retc = stat(dbdir, &dbdirstat)) != 0) {
-				NOMERR("%s: %s!\n", dbdir, strerror(errno));
-				retc = errno;
-				return(retc);
-			} else {
-				/* Run some tests againt the returned directory structure */
-				if ((dbdirstat.st_uid == userid) && (dbdirstat.st_mode == UMODE)) {
-					/* Probably fine, but validate permissions anyway */
-					fstest = UDIR_OK;
-				} else if ((dbdirstat.st_gid == grpid) && (dbdirstat.st_mode == GMODE)) { 
-					/* Check for usable group permissions */
-					fstest = GDIR_OK;
-				}
-			}
-			/* The directory permissions appear to be OK, can continue with making the nombre DB */
-			if ((fstest == UDIR_OK) || (fstest == GDIR_OK)) {
-				retc = NOM_OK;
-				return(retc);
-			}
-			/* 
-			 * TODO: Add a branch for testing the parent directory as well 
-			 * Since the value passed is significantly larger than the 
-			 * required value, investigate adding a sentinel bit to allow recursion
-			 */
+			break;
 		}
 	}
+
+	if (dbg) {
+		NOMDBG("%s%s\n", "Detected directory: ", dbdir);
+	}
+	/* Now validate the direcory given actually exists and is writeable by the current user */
+	if ((retc = stat(dbdir, &dbdirstat)) != 0) {
+		NOMERR("%s: %s!\n", dbdir, strerror(errno));
+		retc = errno;
+		return(retc);
+	} else {
+		if (dbg) {
+			NOMDBG("Directory info: %s: %u, %s:%o\n", "UID", dbdirstat.st_uid, "Mode", dbdirstat.st_mode);
+		}
+		/* Run some tests againt the returned directory structure */
+		if ((dbdirstat.st_uid == userid) && (dbdirstat.st_mode == UMODE)) {
+			/* Probably fine, but validate permissions anyway */
+			fstest = UDIR_OK;
+		} else if ((dbdirstat.st_gid == grpid) && (dbdirstat.st_mode == GMODE)) { 
+			/* Check for usable group permissions */
+			fstest = GDIR_OK;
+		}
+	}
+	/* The directory permissions appear to be OK, can continue with making the nombre DB */
+	if ((fstest == UDIR_OK) || (fstest == GDIR_OK)) {
+		retc = NOM_OK;
+		if (dbg) {
+			NOMDBG("Returning %d to caller\n", retc);
+		}
+		return(retc);
+	}
+	/* 
+	 * TODO: Add a branch for testing the parent directory as well 
+	 * Since the value passed is significantly larger than the 
+	 * required value, investigate adding a sentinel bit to allow recursion
+	 */
 	/* If we reach the end, there's no parent directory to check, use CWD */
 	retc = NOM_USECWD;
 
@@ -233,6 +247,10 @@ run_initsql(const nomcmd * cmdbuf) {
 	sqlmap = NULL; sqlend = NULL; sqltail = NULL;
 	stmt = NULL;
 
+	if (dbg) {
+		NOMDBG("Entering with dbhandle = %p, dbname = %s, sqlfile = %s\n", 
+				(void *)cmdbuf->dbcon, cmdbuf->filedata[NOMBRE_DBFILE], cmdbuf->filedata[NOMBRE_INITSQL]);
+	}
 	/* Validate non-null pointer */
 	if (cmdbuf == NULL) {
 		fprintf(stderr, "[ERR] %s [%s:%u] %s: Invalid command structure!\n", __progname, __FILE__, __LINE__, __func__);
@@ -250,14 +268,17 @@ run_initsql(const nomcmd * cmdbuf) {
 	}
 
 	/* This test is different, as we expect sqlfd to be a nonzero positive integer */
-	if ((sqlfd = open(cmdbuf->filedata[NOMBRE_INITSQL], O_RDONLY|O_NONBLOCK|O_EXLOCK|O_CLOEXEC)) <= NOM_OK) {
+	if ((sqlfd = open(cmdbuf->filedata[NOMBRE_INITSQL], O_RDONLY|O_NONBLOCK|O_EXLOCK)) < 0) {
 		/* Should not be possible after testing for existence via stat(2) */
 		NOMERR("Unable to open %s! (%s)\n", cmdbuf->filedata[NOMBRE_INITSQL], strerror(errno));
 		return(NOM_FIO_FAIL);
 	}
 
+	if (dbg) {
+		NOMDBG("sqlfd = %d\n", sqlfd);
+	}
 	/* Now create an mmap(2)'d buffer for the file */
-	if ((sqlmap = mmap(NULL, sqllen, PROT_READ, sqlfd, MAP_PRIVATE, (off_t)0)) == NULL) {
+	if ((sqlmap = mmap(NULL, (size_t)sqlstat.st_size, PROT_READ, MAP_NOSYNC|MAP_PRIVATE, sqlfd, (off_t)0)) == MAP_FAILED) {
 		NOMERR("Unable to map %s! (%s)\n", cmdbuf->filedata[NOMBRE_INITSQL], strerror(errno));
 		/* Clean up before bailing */
 		close(sqlfd);
@@ -272,12 +293,13 @@ run_initsql(const nomcmd * cmdbuf) {
 	}
 
 	/* This requires that we've actually compiled a SQL statement before entering the loop */
-	for (; (retc != SQLITE_OK && retc != SQLITE_DONE) && (sqlmap < sqlend); sqlmap = (char * const)sqltail) {
+	for (; sqlmap < sqlend; sqlmap = (char * const)sqltail) {
+		/* TODO: Add a check for possible error conditions */
 		retc = sqlite3_step(stmt);
 		retc = sqlite3_finalize(stmt);
 		retc = sqlite3_prepare_v2(cmdbuf->dbcon, sqlmap, -1, &stmt, (const char **)&sqltail);
 		if (dbg) {
-			NOMDBG("Current Context: %16s\n", sqlmap);
+			NOMDBG("Current Context: %.16s\n", sqlmap);
 		} else {
 			fprintf(stdout,".");
 		}
