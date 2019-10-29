@@ -77,19 +77,22 @@ typedef uint8_t byte;
 
 /* Define the values of the subcommonds */
 typedef enum subcom_t {
-	lookup = 0,  /* Most likely command, look up given term */
-	define = 1,  /* Add a definition */
-	search = 2,  /* Perform a keyword search */
-	verify = 4,  /* Run validation tests */
-	initdb = 5,  /* Initialize database */
-	import = 6,  /* Import definitions from file */
-	export = 7,  /* Export definitons to file */
-	dumpdb = 8,  /* Dump contents to stdout */
-	addsrc = 9,  /* Add an entry for the definition source */
-	update = 10, /* Update a definition */
-	vquery = 11, /* Lookup with sources */
-	catscn = 12  /* Dump the definitions for the given category to stdout */
+	lookup = (unsigned int)(0x01 << 0 ), /* Most likely command, look up given term */
+	define = (unsigned int)(0x01 << 1 ), /* Add a definition */
+	search = (unsigned int)(0x01 << 2 ), /* Perform a keyword search */
+	verify = (unsigned int)(0x01 << 4 ), /* Run validation tests */
+	import = (unsigned int)(0x01 << 5 ), /* Import definitions from file */
+	export = (unsigned int)(0x01 << 6 ), /* Export definitons to file */
+	dumpdb = (unsigned int)(0x01 << 7 ), /* Dump contents to stdout */
+	addsrc = (unsigned int)(0x01 << 8 ), /* Add an entry for the definition source */
+	update = (unsigned int)(0x01 << 9 ), /* Update a definition */
+	vquery = (unsigned int)(0x01 << 10), /* Lookup with sources */
+	catscn = (unsigned int)(0x01 << 11), /* Dump the definitions for the given category to stdout */
+	unknown = (unsigned int)(0x01<< 29), /* Unable to determine what the user wants */
+	grpcmd = (unsigned int)(0x01 << 30)  /* Operating on a group */
 } subcom;
+
+#define CMDCOUNT 11
 
 /* 
  * Define data structure for command parsing 

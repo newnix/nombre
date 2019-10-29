@@ -35,4 +35,4 @@
 #include "nombre.h"
 #endif
 
-int parsecmd(nomcmd * restrict cmdbuf, const char ** restrict argstr);
+int parsecmd(const char * restrict arg);

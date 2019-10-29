@@ -36,7 +36,9 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #ifndef NOMBRE_H
 #include "nombre.h"
 #endif
@@ -44,13 +46,122 @@
 #include "subnom.h"
 #endif
 
+extern char *__progname;
+extern char **environ;
+extern bool dbg;
+
+/* 
+ * This function handles the handoff to other functions as needed to build the appropriate SQL 
+ * statements to do what the user asked of us. As a manner of convention, the 
+ * group directive must be present before any other commands.
+ */
 int
 buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	int retc;
-	retc = 0;
+	int andmask;
+	andmask = retc = 0;
 
 	if ((cmdbuf == NULL) || (argstr == NULL)) {
 		retc = BADARGS;
+	} else {
+		/* Since we can't be sure we have a valid  database connection at this time, open one */
+		if (cmdbuf->dbcon == NULL) {
+			/* Likely use the functions in initdb.h to connect */
+		}
+	}
+
+	cmdbuf->command = parsecmd(*argstr);
+	++argstr;
+	if (cmdbuf->command == grpcmd) {
+		cmdbuf->command |= parsecmd(*argstr);
+	}
+	/* 
+	 * Set our andmask to unset the 30th bit 
+	 * called functions will be able to check for this bit at entry
+	 */
+	if ((cmdbuf->command & grpcmd) == grpcmd) {
+		andmask = -(~grpcmd);
+	} else {
+		andmask = (int)0x8FFF; /* Should be INT_MAX */
+	}
+	/* Now that we know we have a good database connection, determine what we need to do next */
+	switch (cmdbuf->command & andmask) {
+		case (lookup):
+			break;
+		case (define):
+			break;
+		case (search):
+			break;
+		case (verify):
+			break;
+		case (import):
+			break;
+		case (export):
+			break;
+		case (dumpdb):
+			break;
+		case (addsrc):
+			break;
+		case (update):
+			break;
+		case (vquery):
+			break;
+		case (catscn):
+			break;
+		/* We hit an unexpected value */
+		default:
+			break;
+	}
+	return(retc);
+}
+
+int
+runcmd(nomcmd * restrict cmdbuf) {
+	int retc;
+	retc = 0;
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
+	}
+	if (cmdbuf == NULL) {
+		NOMERR("%s", "Given invalid input!\n");
+		retc = BADARGS;
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
+	}
+	return(retc);
+}
+
+int
+nomdb_dump(const nomcmd * restrict cmdbuf) {
+	int retc;
+	retc = 0;
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
+	}
+	if (cmdbuf == NULL) {
+		NOMERR("%s", "Given invalid input!\n");
+		retc = BADARGS;
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
+	}
+	return(retc);
+}
+
+int
+nomdb_impt(nomcmd * restrict cmdbuf) {
+	int retc;
+	retc = 0;
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
+	}
+	if (cmdbuf == NULL) {
+		NOMERR("%s", "Given invalid input!\n");
+		retc = BADARGS;
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
 	}
 	return(retc);
 }

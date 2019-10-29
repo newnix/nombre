@@ -37,4 +37,13 @@
 #include "nombre.h"
 #endif
 
+/* 
+ * Not all uses of 'restrict' are necessary, but are kept to ensure the point is clear
+ * that these pointers should not occupy the same space in memory
+ * It should generally not be possible to recieve invalid inputs for these functions, only
+ * unknown directives.
+ */
 int buldcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr);
+int runcmd(nomcmd * restrict cmdbuf);
+int nomdb_dump(const nomcmd * restrict cmdbuf);
+int nomdb_impt(nomcmd * restrict cmdbuf);

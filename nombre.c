@@ -205,13 +205,13 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 			 * NOTE: really doesn't deserve its own case
 			 */
 			case (DBFILE):
-				retc = parsecmd(cmdbuf, argstr);
+				retc = parsecmd(*argstr);
 				break;
 			/*
 			 * No behaviour changing flags passed, default behaviour
 			 */
 			default: 
-				retc = parsecmd(cmdbuf, argstr);
+				retc = parsecmd(*argstr);
 				break;
 		}
 	}

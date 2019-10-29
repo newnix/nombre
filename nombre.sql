@@ -69,5 +69,20 @@ COMMIT;
 
 -- Define some indices for quicker lookups on certain values expected to be common
 
+-- Provide some baseline data for the database to have available
+BEGIN;
+	INSERT INTO definitions VALUES
+	('SSL', 'Secure Sockets Layer', 1),
+	('TLS', 'Transport Layer Security', 1),
+	('TCP', 'Transmission Control Protocol', 1),
+	('UDP', 'User Datagram Protocol', 1),
+	('POSIX', 'Portable Operating Systems Interface', 0),
+	('SQL', 'Structured Query Language', 2),
+	('AES', 'Advanced Encryption Standard', 3),
+	('API', 'Application Programming Interface', 4),
+	('MASTO', 'Sharthand for \"Mastodon\" social networking', -1)
+	;
+COMMIT;
+
 -- Last line of executed code, run an optimization pass
 PRAGMA optimize;

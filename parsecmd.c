@@ -49,19 +49,52 @@ extern char *__progname;
 extern char **environ;
 extern bool dbg;
 
-/* 
- * This function handles some of the basic handling and construction of the command buffer
- * values. There will be helper functions to prevent excessive complexity in this function.
- */
 int
-parsecmd(nomcmd * restrict cmdbuf, const char ** restrict argstr){
+parsecmd(const char * restrict arg) {
 	int retc;
 	retc = 0;
-	
-	/* Simple test to ensure we didn't get NULL pointers somehow */
-	if ((cmdbuf == NULL) || (argstr == NULL)) {
-		fprintf(stderr,"[ERR] %s [%s:%u] %s: Invalid input recieved, returning to caller!\n", __progname, __FILE__, __LINE__, __func__);
+
+	/* Define a list of valid command strings */
+	const char *cmdstrs[] = { "def", "add", "key", "ver", "imp", "exp", "src", "dmp", "upd", "vqy", "cts", "grp" }; /* "Short" */
+	const char *cmdstr_long[] = { "define", "adddef", "keyword", "verify", "import", "export", "srcadd", "dumpdb", "update", "vquery", "catscn", "grpcmd" }; /* "Long" */
+
+	if (dbg) {
+		NOMDBG("Entering with arg = %p\n", (void *)arg);
+	}
+
+	/* A NULL argument should not be possible */
+	if (arg == NULL) {
+		NOMERR("%s\n", "Given invalid arguments!");
 		retc = BADARGS;
+	}
+
+	/* 
+	 * Since we can be sure that we don't have a NULL pointer, check the string size 
+	 * iterator value is never more than 11, so use whatever the fastest option is for an 8bit value
+	 * Loops are capped at valid commands aside from the group value, as that requires extra logic,
+	 * the group commands are assumed to be among the least frequent, and as such will only be checked 
+	 * after all single-value commands are exhausted.
+	 */
+	if (strlen(arg) == 3) {
+		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc == 0)) ; i++) {
+			retc = memcmp(arg, cmdstrs[i], 3);
+			retc = (retc == 0) ? (0x01 << i) : 0;
+		}
+		if (memcmp(arg, cmdstrs[CMDCOUNT], 3) == 0) {
+			retc = grpcmd;
+		}
+	} else {
+		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc == 0)); i++) {
+			retc = memcmp(arg, cmdstr_long[i], 6);
+			retc = (retc == 0) ? (0x01 << i) : 0;
+		}
+		if (memcmp(arg, cmdstrs[CMDCOUNT], 6) == 0) {
+			retc = grpcmd;
+		}
+	}
+
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
 	}
 	return(retc);
 }
