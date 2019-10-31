@@ -42,6 +42,9 @@
 #ifndef NOMBRE_H
 #include "nombre.h"
 #endif
+#ifndef NOMBRE_INITDB_H
+#include "initdb.h"
+#endif
 #ifndef NOMBRE_PARSECMD_H
 #include "parsecmd.h"
 #endif
@@ -62,14 +65,21 @@ int
 buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	int retc;
 	uint_fast32_t andmask;
-	andmask = retc = 0;
+	retc = 0;
+	andmask = (~grpcmd);
 
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p, argstr = %p, andmask = %X\n", (void *)cmdbuf, (const void *)argstr, andmask);
+	}
 	if ((cmdbuf == NULL) || (argstr == NULL)) {
 		retc = BADARGS;
 	} else {
 		/* Since we can't be sure we have a valid  database connection at this time, open one */
 		if (cmdbuf->dbcon == NULL) {
 			/* Likely use the functions in initdb.h to connect */
+			if ((retc = nom_getdbn(cmdbuf->filedata[NOMBRE_DBFILE])) == NOM_OK) {
+				retc = nom_dbconn(cmdbuf);
+			}
 		}
 	}
 
@@ -82,18 +92,22 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	 * Set our andmask to unset the 30th bit 
 	 * called functions will be able to check for this bit at entry
 	 */
-	if ((cmdbuf->command & grpcmd) == grpcmd) {
-		andmask = (uint_fast32_t)(~grpcmd);
-	} else {
-		andmask = (uint32_t)(~0); /* Should be INT_MAX */
-	}
+
 	/* Now that we know we have a good database connection, determine what we need to do next */
 	switch (cmdbuf->command & andmask) {
 		case (lookup):
+			retc = nombre_lookup(cmdbuf, argstr);
 			break;
+		/*
+		 * This may be a bit deceptively named, but I'm sticking with it for now. 
+		 * It's meant to be interpreted in the sense of the user defining a term, not 
+		 * the user looking for a term's definition
+		 */
 		case (define):
+			retc = nombre_newdef(cmdbuf, argstr);
 			break;
 		case (search):
+			retc = nombre_ksearch(cmdbuf, argstr);
 			break;
 		case (verify):
 			break;
@@ -114,6 +128,12 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		/* We hit an unexpected value */
 		default:
 			break;
+	}
+	if (retc == 0) {
+		retc = runcmd(cmdbuf);
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
 	}
 	return(retc);
 }

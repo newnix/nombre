@@ -53,6 +53,9 @@
 #ifndef NOMBRE_INITDB_H
 #include "initdb.h"
 #endif
+#ifndef NOMBRE_SUBNOM_H
+#include "subnom.h"
+#endif
 #ifndef NOMBRE_PARSECMD_H
 #include "parsecmd.h"
 #endif
@@ -81,9 +84,9 @@ bool dbg = false;
  * 0 0 0 0 0 0 0 0
  * ===============
  * | | | | | | | \- Help
- * | | | | | | \- Database file
+ * | | | | | | \- Reserved
  * | | | | | \- Initialize database
- * | | | | \- Import/Export file
+ * | | | | \- Reserved
  * | | | \- Initialization SQL
  * | | \- Self-test
  * | \- Reserved
@@ -94,10 +97,13 @@ int
 main(int ac, char **av) {
 	int retc, ch;
 	uint8_t flags;
-	nomcmd cmd;
+	/* Ensure all pointer members are initialized as NULL */
+	nomcmd cmd = { .dbcon = NULL, .definition = NULL, .gensql = NULL };
 	ch = retc = 0;
 	flags = 0;
 
+	/* Initialize the SQLite3 library */
+	sqlite3_initialize();
 	opterr ^= opterr;
 	while ((ch = getopt(ac, av, "d:i:f:vDIh")) != -1) {
 		switch (ch) {
@@ -138,6 +144,11 @@ main(int ac, char **av) {
 	av += optind;
 
 	retc = cook(&flags, &cmd, (const char **)av);
+	if (cmd.dbcon != NULL) {
+		sqlite3_close_v2(cmd.dbcon);
+	}
+	/* All SQLite3 objects should be deallocated before this point */
+	sqlite3_shutdown();
 	return(retc);
 }
 
@@ -193,7 +204,7 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 			 * No behaviour changing flags passed, default behaviour
 			 */
 			default: 
-				retc = parsecmd(cmdbuf, *argstr);
+				retc = buildcmd(cmdbuf, argstr);
 				break;
 		}
 	}

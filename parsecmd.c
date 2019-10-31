@@ -75,8 +75,8 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	 * the group commands are assumed to be among the least frequent, and as such will only be checked 
 	 * after all single-value commands are exhausted.
 	 */
-	if (strlen(arg) == 3) {
-		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc == 0)) ; i++) {
+	if (strnlen(arg, (size_t)6) <= 3) {
+		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)) ; i++) {
 			retc = memcmp(arg, cmdstrs[i], 3);
 			cmdbuf->command = (retc == 0) ? (0x01 << i) : 0;
 		}
@@ -89,7 +89,7 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 			retc = memcmp(arg, cmdstr_long[i], 6);
 			cmdbuf->command = (retc == 0) ? (0x01 << i) : 0;
 		}
-		if (memcmp(arg, cmdstrs[CMDCOUNT], 6) == 0) {
+		if (memcmp(arg, cmdstr_long[CMDCOUNT], 6) == 0) {
 			cmdbuf->command |= grpcmd;
 			retc = grpcmd;
 		}
@@ -97,6 +97,72 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 
 	if (dbg) {
 		NOMDBG("Returning %d to caller with cmdbuf->command = %d\n", retc, cmdbuf->command);
+	}
+	return(retc);
+}
+
+int
+nombre_lookup(nomcmd * restrict cmdbuf, const char ** restrict args) {
+	int retc;
+	retc = 0;
+
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)args);
+	}
+	if ((cmdbuf == NULL) || (args == NULL)) {
+		NOMERR("%s\n", "Invalid Arguments!");
+		retc = BADARGS;
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
+	}
+	return(retc);
+}
+
+int
+nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args) {
+	int retc;
+	retc = 0;
+
+	if ((cmdbuf == NULL) || (args == NULL)) {
+		NOMERR("%s\n", "Invalid Arguments!");
+		retc = BADARGS;
+	}
+	return(retc);
+}
+
+int
+nombre_addsrc(nomcmd * restrict cmdbuf, const char ** restrict args) {
+	int retc;
+	retc = 0;
+
+	if ((cmdbuf == NULL) || (args == NULL)) {
+		NOMERR("%s\n", "Invalid Arguments!");
+		retc = BADARGS;
+	}
+	return(retc);
+}
+
+int
+nombre_vquery(nomcmd * restrict cmdbuf, const char ** restrict args) {
+	int retc;
+	retc = 0;
+
+	if ((cmdbuf == NULL) || (args == NULL)) {
+		NOMERR("%s\n", "Invalid Arguments!");
+		retc = BADARGS;
+	}
+	return(retc);
+}
+
+int
+nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args) {
+	int retc;
+	retc = 0;
+
+	if ((cmdbuf == NULL) || (args == NULL)) {
+		NOMERR("%s\n", "Invalid Arguments!");
+		retc = BADARGS;
 	}
 	return(retc);
 }

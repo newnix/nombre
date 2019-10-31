@@ -57,6 +57,7 @@
 #define GDIR_OK (GID_OK|GRW_OK)
 
 int nom_getdbn(char * restrict dbnamebuf);
+int nom_dbconn(nomcmd *cmdbuf);
 int nom_testdbpath(const char * restrict dbname);
 int nom_initdb(const char * restrict dbname, const char * restrict initsql, nomcmd *cmdbuf);
 int nom_dirtest(const char * restrict dbname, const size_t dbanmelen);

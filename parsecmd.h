@@ -36,3 +36,8 @@
 #endif
 
 int parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg);
+int nombre_lookup(nomcmd * restrict cmdbuf, const char ** restrict args);
+int nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args);
+int nombre_addsrc(nomcmd * restrict cmdbuf, const char ** restrict args);
+int nombre_vquery(nomcmd * restrict cmdbuf, const char ** restrict args);
+int nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args);

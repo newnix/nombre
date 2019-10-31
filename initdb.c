@@ -70,6 +70,9 @@ nom_getdbn(char * restrict dbnamebuf) {
 	dbprefix = NULL;
 	retc = 0;
 
+	if (dbg) {
+		NOMDBG("Entering with dbnamebuf = %p (%s)\n", (void *)dbnamebuf, dbnamebuf);
+	}
 	/* It should not be possible to call this function with a NULL dbnamebuf, but JIC... */
 	if (dbnamebuf != NULL && *dbnamebuf == 0) {
 		/* No database name was written, check environment */
@@ -84,6 +87,9 @@ nom_getdbn(char * restrict dbnamebuf) {
 			retc ^= retc;
 		} 
 		/* No real else condition, just assume we were given a valid name */
+	}
+	if (dbg) {
+		NOMDBG("Returinng %d to caller\n", retc);
 	}
 	return(retc);
 }
@@ -317,5 +323,23 @@ run_initsql(const nomcmd * cmdbuf) {
 	sqlmap = (sqlend - sqllen);
 	munmap(sqlmap, (size_t)sqllen);
 	close(sqlfd);
+	return(retc);
+}
+
+int
+nom_dbconn(nomcmd *cmdbuf) {
+	int retc;
+	retc = 0;
+	
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p, dbfile = %s\n", (void *)cmdbuf, cmdbuf->filedata[NOMBRE_DBFILE]);
+	}
+	if (cmdbuf == NULL) {
+		NOMERR("%s\n", "Invalid Parameters!");
+		retc = BADARGS;
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller\n", retc);
+	}
 	return(retc);
 }
