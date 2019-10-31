@@ -50,7 +50,7 @@ extern char **environ;
 extern bool dbg;
 
 int
-parsecmd(const char * restrict arg) {
+parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	int retc;
 	retc = 0;
 
@@ -59,11 +59,11 @@ parsecmd(const char * restrict arg) {
 	const char *cmdstr_long[] = { "define", "adddef", "keyword", "verify", "import", "export", "srcadd", "dumpdb", "update", "vquery", "catscn", "grpcmd" }; /* "Long" */
 
 	if (dbg) {
-		NOMDBG("Entering with arg = %p\n", (void *)arg);
+		NOMDBG("Entering with cmdbuf = %p, arg = %p\n", (const void *)cmdbuf, (const void *)arg);
 	}
 
 	/* A NULL argument should not be possible */
-	if (arg == NULL) {
+	if (arg == NULL || cmdbuf == NULL) {
 		NOMERR("%s\n", "Given invalid arguments!");
 		retc = BADARGS;
 	}
@@ -78,23 +78,25 @@ parsecmd(const char * restrict arg) {
 	if (strlen(arg) == 3) {
 		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc == 0)) ; i++) {
 			retc = memcmp(arg, cmdstrs[i], 3);
-			retc = (retc == 0) ? (0x01 << i) : 0;
+			cmdbuf->command = (retc == 0) ? (0x01 << i) : 0;
 		}
 		if (memcmp(arg, cmdstrs[CMDCOUNT], 3) == 0) {
+			cmdbuf->command |= grpcmd;
 			retc = grpcmd;
 		}
 	} else {
 		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc == 0)); i++) {
 			retc = memcmp(arg, cmdstr_long[i], 6);
-			retc = (retc == 0) ? (0x01 << i) : 0;
+			cmdbuf->command = (retc == 0) ? (0x01 << i) : 0;
 		}
 		if (memcmp(arg, cmdstrs[CMDCOUNT], 6) == 0) {
+			cmdbuf->command |= grpcmd;
 			retc = grpcmd;
 		}
 	}
 
 	if (dbg) {
-		NOMDBG("Returning %d to caller\n", retc);
+		NOMDBG("Returning %d to caller with cmdbuf->command = %d\n", retc, cmdbuf->command);
 	}
 	return(retc);
 }

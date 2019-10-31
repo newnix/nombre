@@ -43,7 +43,7 @@
  * It should generally not be possible to recieve invalid inputs for these functions, only
  * unknown directives.
  */
-int buldcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr);
+int buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr);
 int runcmd(nomcmd * restrict cmdbuf);
 int nomdb_dump(const nomcmd * restrict cmdbuf);
 int nomdb_impt(nomcmd * restrict cmdbuf);

@@ -42,6 +42,9 @@
 #ifndef NOMBRE_H
 #include "nombre.h"
 #endif
+#ifndef NOMBRE_PARSECMD_H
+#include "parsecmd.h"
+#endif
 #ifndef NOMBRE_SUBNOM_H
 #include "subnom.h"
 #endif
@@ -58,7 +61,7 @@ extern bool dbg;
 int
 buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	int retc;
-	int andmask;
+	uint_fast32_t andmask;
 	andmask = retc = 0;
 
 	if ((cmdbuf == NULL) || (argstr == NULL)) {
@@ -70,19 +73,19 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		}
 	}
 
-	cmdbuf->command = parsecmd(*argstr);
+	retc = parsecmd(cmdbuf, *argstr);
 	++argstr;
 	if (cmdbuf->command == grpcmd) {
-		cmdbuf->command |= parsecmd(*argstr);
+		retc = parsecmd(cmdbuf, *argstr);
 	}
 	/* 
 	 * Set our andmask to unset the 30th bit 
 	 * called functions will be able to check for this bit at entry
 	 */
 	if ((cmdbuf->command & grpcmd) == grpcmd) {
-		andmask = -(~grpcmd);
+		andmask = (uint_fast32_t)(~grpcmd);
 	} else {
-		andmask = (int)0x8FFF; /* Should be INT_MAX */
+		andmask = (uint32_t)(~0); /* Should be INT_MAX */
 	}
 	/* Now that we know we have a good database connection, determine what we need to do next */
 	switch (cmdbuf->command & andmask) {

@@ -101,12 +101,12 @@ typedef enum subcom_t {
  */
 typedef struct nombre_cmd_t {
 	subcom command;
-	sqlite3 *dbcon; /* database connection */
 	char filedata[3][PATHMAX]; /* File argument array holder */
 	/* assume we're using ASCII for now, full UTF-8 will be a stretch goal */
 	char defdata[2][DEFLEN]; /* Fold term/category into single 2D member */
 	char *definition;  /* Collected definition (input only) */
 	char *gensql; /* Generated SQL statement */
+	sqlite3 *dbcon; /* database connection */
 } nomcmd;
 
 /* 

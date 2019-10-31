@@ -113,7 +113,7 @@ nom_initdb(const char * restrict dbname, const char * restrict initsql, nomcmd *
 		 * Directory does not currently exist, create with mask as defined 
 		 * retc should now be the number of characters backtracked to reach the directory
 		 */
-		retc = nom_mkdirs(dbname, (dblen - retc));
+		retc = nom_mkdirs(dbname, (dblen - (size_t)retc));
 	} else {
 		if ((retc = sqlite3_initialize()) != SQLITE_OK) {
 			NOMERR("%s Returning %d to caller\n","Unable to ititialize SQLite3 library!", retc);
@@ -239,7 +239,8 @@ int
 run_initsql(const nomcmd * cmdbuf) {
 	int retc, sqlfd;
 	size_t sqllen;
-	char *sqlmap, *sqlend, *sqltail;
+	char *sqlmap, *sqlend;
+	const char *sqltail;
 	struct stat sqlstat;
 	sqlite3_stmt *stmt;
 	retc = 0;
@@ -264,7 +265,7 @@ run_initsql(const nomcmd * cmdbuf) {
 		return(retc);
 	} else {
 		/* Ideally validate that we can read the file, but for now it's important to grab the size */
-		sqllen = sqlstat.st_size;
+		sqllen = (size_t)sqlstat.st_size;
 	}
 
 	/* This test is different, as we expect sqlfd to be a nonzero positive integer */

@@ -58,11 +58,9 @@
 #endif
 /* Define mneonics for the flag values */
 #define HELPME 0x01
-#define DBFILE 0x02
-#define DBINIT 0x04
-#define IOFILE 0x08
-#define INTSQL 0x10
-#define DBTEST 0x20
+#define DBINIT 0x02
+#define INTSQL 0x04
+#define DBTEST 0x08
 
 /* Declare extern/global vars */
 extern char *__progname;
@@ -107,7 +105,6 @@ main(int ac, char **av) {
 				flags |= HELPME;
 				break;
 			case 'd':
-				flags |= DBFILE;
 				strlcpy(cmd.filedata[0], optarg, (size_t)PATHMAX);
 				break;
 			case 'i':
@@ -115,7 +112,6 @@ main(int ac, char **av) {
 				strlcpy(cmd.filedata[1], optarg, (size_t)PATHMAX);
 				break;
 			case 'f':
-				flags |= IOFILE;
 				strlcpy(cmd.filedata[2], optarg, (size_t)PATHMAX);
 				break;
 			case 'v':
@@ -175,21 +171,14 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 
 	if (dbg) {
 		NOMDBG("Current flag setting: %u\n", *flags);
-		//fprintf(stderr, "[DBG] %s [%s:%u] %s: Current flag setting: %u\n", __progname, __FILE__, __LINE__, __func__, *flags);
 	}
 
 	/* Test the status of the bits in *flags */
-	if (((*flags & HELPME) == HELPME) || (*flags == HELPME)) {
+	if ((*flags & HELPME) == HELPME) {
 		usage();
 		return(retc);
 	} else {
-		switch (*flags & (0x8FFF)) {
-		/*
-		 * Initialize the database at the given location and with the given SQL file
-		 */
-			case (DBFILE|DBINIT|INTSQL):
-				retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1], cmdbuf);
-				break;
+		switch (*flags & (uint8_t)(0x8F)) {
 			/*
 			 * Initialize the database, but use the default construction method or environmental variable
 			 */
@@ -197,27 +186,20 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 				if ((retc = nom_getdbn(cmdbuf->filedata[0])) == NOM_OK) {
 					retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1], cmdbuf);
 				} else {
-					fprintf(stderr, "[ERR] %s [%s:%u] %s: Failed to get the database name!\n", __progname, __FILE__, __LINE__, __func__);
+					NOMERR("%s\n", "Failed to get database name!\n");
 				}
-				break;
-			/*
-			 * Manually set the database location rather than constructing from defaults
-			 * NOTE: really doesn't deserve its own case
-			 */
-			case (DBFILE):
-				retc = parsecmd(*argstr);
 				break;
 			/*
 			 * No behaviour changing flags passed, default behaviour
 			 */
 			default: 
-				retc = parsecmd(*argstr);
+				retc = parsecmd(cmdbuf, *argstr);
 				break;
 		}
 	}
 
 	if (dbg){
-		fprintf(stderr, "[DBG] %s [%s:%u] %s: Returinng %d to caller\n", __progname, __FILE__, __LINE__, __func__, retc);
+		NOMDBG("Returning %d to caller\n", retc);
 	}
 	return(retc);
 }
