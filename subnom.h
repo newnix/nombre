@@ -44,6 +44,6 @@
  * unknown directives.
  */
 int buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr);
-int runcmd(nomcmd * restrict cmdbuf);
+int runcmd(nomcmd * restrict cmdbuf, int genlen);
 int nomdb_dump(const nomcmd * restrict cmdbuf);
 int nomdb_impt(nomcmd * restrict cmdbuf);

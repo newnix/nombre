@@ -64,7 +64,7 @@ extern bool dbg;
 int
 buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	int retc;
-	uint_fast32_t andmask;
+	uint32_t andmask;
 	retc = 0;
 	andmask = (~grpcmd);
 
@@ -87,12 +87,19 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	++argstr;
 	if (cmdbuf->command == grpcmd) {
 		retc = parsecmd(cmdbuf, *argstr);
+		if (retc == NOM_OK) {
+			++argstr;
+		}
 	}
 	/* 
 	 * Set our andmask to unset the 30th bit 
 	 * called functions will be able to check for this bit at entry
 	 */
 
+	if (dbg) {
+		NOMDBG("cmdbuf->command = %X (%u), andmask = %X (%u), (cmdbuf->command & andmask) = %X (%u)\n", 
+				cmdbuf->command, cmdbuf->command, andmask, andmask, (cmdbuf->command & andmask), (cmdbuf->command & andmask));
+	}
 	/* Now that we know we have a good database connection, determine what we need to do next */
 	switch (cmdbuf->command & andmask) {
 		case (lookup):
@@ -125,12 +132,13 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 			break;
 		case (catscn):
 			break;
-		/* We hit an unexpected value */
+		/* Assume the user just didn't type "def" */
 		default:
+			retc = nombre_lookup(cmdbuf, argstr);
 			break;
 	}
-	if (retc == 0) {
-		retc = runcmd(cmdbuf);
+	if ((retc == 0) && (cmdbuf->gensql != NULL)) {
+		retc = runcmd(cmdbuf, (int)strlen(cmdbuf->gensql));
 	}
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);
@@ -139,16 +147,39 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 }
 
 int
-runcmd(nomcmd * restrict cmdbuf) {
+runcmd(nomcmd * restrict cmdbuf, int genlen) {
 	int retc;
+	const char *sqltail; 
+	sqlite3_stmt *stmt;
 	retc = 0;
+	sqltail = NULL; stmt = NULL;
+
 	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
+		NOMDBG("Entering with cmdbuf = %p, genlen = %d, cmdbuf->gensql = %p\n", (void *)cmdbuf, genlen, (void *)cmdbuf->gensql);
 	}
-	if (cmdbuf == NULL) {
+	if (cmdbuf == NULL || cmdbuf->gensql == NULL) {
 		NOMERR("%s", "Given invalid input!\n");
 		retc = BADARGS;
 	}
+	if (dbg) {
+		NOMDBG("Attempting to run generated SQL = %s\n", cmdbuf->gensql);
+	}
+
+	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_ROW) {
+		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+	} else {
+		if ((retc = sqlite3_step(stmt)) != SQLITE_ROW) {
+			NOMERR("Error with generated SQL (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+		}
+		for (register int_fast8_t i = 0; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
+			if (i != 0) {
+				fprintf(stdout,"%s\n", sqlite3_column_text(stmt,0));
+			} else {
+				fprintf(stdout,"Match #%d: %s\n", i, sqlite3_column_text(stmt,0));
+			}
+		}
+	}
+	free(cmdbuf->gensql);
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);
 	}
@@ -160,7 +191,7 @@ nomdb_dump(const nomcmd * restrict cmdbuf) {
 	int retc;
 	retc = 0;
 	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
+		NOMDBG("Entering with cmdbuf = %p\n", (const void *)cmdbuf);
 	}
 	if (cmdbuf == NULL) {
 		NOMERR("%s", "Given invalid input!\n");

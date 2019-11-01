@@ -28,7 +28,7 @@ CLANG_FLAGS = ${CLANG_CFLAGS} ${CLANG_WARN} ${CLANG_LINK}
 
 ## Flags used to build under GCC
 ## Generic flags
-LIBS = -L/usr/local/lib -L/usr/lib -lsqlite3
+LIBS = -L/usr/local/lib -L/usr/lib -lsqlite3 -lpthread -lc
 INCS = -I/usr/local/include -I/usr/include
 ## List of *.c files to build
 SRCS = nombre.c initdb.c dbverify.c parsecmd.c subnom.c

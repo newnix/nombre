@@ -49,17 +49,21 @@ extern char *__progname;
 extern char **environ;
 extern bool dbg;
 
+static inline bool isgrp(const nomcmd * restrict cmd);
+
 int
 parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	int retc;
-	retc = 0;
+	size_t arglen;
+	retc = -1;
+	arglen = 0;
 
 	/* Define a list of valid command strings */
 	const char *cmdstrs[] = { "def", "add", "key", "ver", "imp", "exp", "src", "dmp", "upd", "vqy", "cts", "grp" }; /* "Short" */
 	const char *cmdstr_long[] = { "define", "adddef", "keyword", "verify", "import", "export", "srcadd", "dumpdb", "update", "vquery", "catscn", "grpcmd" }; /* "Long" */
 
 	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p, arg = %p\n", (const void *)cmdbuf, (const void *)arg);
+		NOMDBG("Entering with cmdbuf = %p, arg = %p, strnlen(%s) = %lu\n", (const void *)cmdbuf, (const void *)arg, arg, strnlen(arg,(size_t)6));
 	}
 
 	/* A NULL argument should not be possible */
@@ -67,6 +71,7 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 		NOMERR("%s\n", "Given invalid arguments!");
 		retc = BADARGS;
 	}
+	arglen = strnlen(arg, (size_t)3);
 
 	/* 
 	 * Since we can be sure that we don't have a NULL pointer, check the string size 
@@ -74,22 +79,39 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	 * Loops are capped at valid commands aside from the group value, as that requires extra logic,
 	 * the group commands are assumed to be among the least frequent, and as such will only be checked 
 	 * after all single-value commands are exhausted.
+	 * XXX: These loops can probably be collapsed, but doing so is not a priority at this time
 	 */
-	if (strnlen(arg, (size_t)6) <= 3) {
+	if (arglen == 3) {
 		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)) ; i++) {
-			retc = memcmp(arg, cmdstrs[i], 3);
-			cmdbuf->command = (retc == 0) ? (0x01 << i) : 0;
+			retc = memcmp(arg, cmdstrs[i], arglen);
+			if (dbg) { 
+				NOMDBG("i = %d, retc = %d, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", i, retc, cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
+			}
+			if (retc == 0) {
+				cmdbuf->command |= (0x01 << i);
+			}
 		}
-		if (memcmp(arg, cmdstrs[CMDCOUNT], 3) == 0) {
+		if (memcmp(arg, cmdstrs[CMDCOUNT], arglen) == 0) {
+			if (dbg) {
+				NOMDBG("Detected group command with arg = %s\n", arg);
+			}
 			cmdbuf->command |= grpcmd;
 			retc = grpcmd;
 		}
 	} else {
-		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc == 0)); i++) {
-			retc = memcmp(arg, cmdstr_long[i], 6);
-			cmdbuf->command = (retc == 0) ? (0x01 << i) : 0;
+		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)); i++) {
+			retc = memcmp(arg, cmdstr_long[i], arglen);
+			if (dbg) { 
+				NOMDBG("i = %d, retc = %d, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", i, retc, cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
+			}
+			if (retc == 0) {
+				cmdbuf->command |= (0x01 << i);
+			}
 		}
-		if (memcmp(arg, cmdstr_long[CMDCOUNT], 6) == 0) {
+		if (memcmp(arg, cmdstr_long[CMDCOUNT], arglen) == 0) {
+			if (dbg) {
+				NOMDBG("Detected group command with arg = %s\n", arg);
+			}
 			cmdbuf->command |= grpcmd;
 			retc = grpcmd;
 		}
@@ -112,6 +134,22 @@ nombre_lookup(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	if ((cmdbuf == NULL) || (args == NULL)) {
 		NOMERR("%s\n", "Invalid Arguments!");
 		retc = BADARGS;
+	}
+
+	if (isgrp(cmdbuf)) {
+		/* Use group logic */
+		strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
+		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+		retc = asprintf(&cmdbuf->gensql, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
+				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
+	} else {
+		/* Expected to be normal path */
+		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+		retc = asprintf(&cmdbuf->gensql, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\');",
+				cmdbuf->defdata[NOMBRE_DBTERM]);
+	}
+	if (retc > 0) {
+		retc ^= retc;
 	}
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);
@@ -165,4 +203,13 @@ nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args) {
 		retc = BADARGS;
 	}
 	return(retc);
+}
+
+/* 
+ * This function is never called except after validating that we have a 
+ * non-NULL pointer to the command structure
+ */
+static inline bool
+isgrp(const nomcmd * restrict cmd) {
+	return(((cmd->command & grpcmd) == grpcmd) ? true : false);
 }
