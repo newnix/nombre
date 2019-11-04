@@ -56,7 +56,7 @@
 /* Some general return mnemonics */
 #define NOM_OK  0
 #define BADARGS -1 /* Should evaluate to -1 when used as a signed integer */
-#define NOM_USECWD -2 /* Should evaluate to -2 */
+#define NOM_USECWD -2 
 #define NOM_FIO_FAIL -3
 
 /* Simple not implemented message */
@@ -104,8 +104,8 @@ typedef struct nombre_cmd_t {
 	char filedata[3][PATHMAX]; /* File argument array holder */
 	/* assume we're using ASCII for now, full UTF-8 will be a stretch goal */
 	char defdata[2][DEFLEN]; /* Fold term/category into single 2D member */
+	char gensql[PATHMAX]; /* Generated SQL statement, capped at 1/4 PAGE_SIZE assuming 4k pages */
 	char *definition;  /* Collected definition (input only) */
-	char *gensql; /* Generated SQL statement */
 	sqlite3 *dbcon; /* database connection */
 } nomcmd;
 

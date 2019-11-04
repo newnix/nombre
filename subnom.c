@@ -165,11 +165,11 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 		NOMDBG("Attempting to run generated SQL = %s\n", cmdbuf->gensql);
 	}
 
-	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_ROW) {
+	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
 		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
 	} else {
 		if ((retc = sqlite3_step(stmt)) != SQLITE_ROW) {
-			NOMERR("Error with generated SQL (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+			NOMERR("Error with generated SQL (%d: %s)\n", retc, sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
 		}
 		for (register int_fast8_t i = 0; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
 			if (i != 0) {
@@ -179,7 +179,6 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 			}
 		}
 	}
-	free(cmdbuf->gensql);
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);
 	}

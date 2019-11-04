@@ -140,12 +140,12 @@ nombre_lookup(nomcmd * restrict cmdbuf, const char ** restrict args) {
 		/* Use group logic */
 		strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
 		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
-		retc = asprintf(&cmdbuf->gensql, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
+		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
 				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
 	} else {
 		/* Expected to be normal path */
 		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
-		retc = asprintf(&cmdbuf->gensql, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\');",
+		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\');",
 				cmdbuf->defdata[NOMBRE_DBTERM]);
 	}
 	if (retc > 0) {

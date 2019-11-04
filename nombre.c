@@ -98,7 +98,7 @@ main(int ac, char **av) {
 	int retc, ch;
 	uint8_t flags;
 	/* Ensure all pointer members are initialized as NULL */
-	nomcmd cmd = { .dbcon = NULL, .definition = NULL, .gensql = NULL };
+	nomcmd cmd = { .dbcon = NULL, .definition = NULL };
 	ch = retc = 0;
 	flags = 0;
 
