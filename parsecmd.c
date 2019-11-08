@@ -50,6 +50,7 @@ extern char **environ;
 extern bool dbg;
 
 static inline bool isgrp(const nomcmd * restrict cmd);
+static inline void upcase(char * restrict str);
 
 int
 parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
@@ -160,11 +161,55 @@ nombre_lookup(nomcmd * restrict cmdbuf, const char ** restrict args) {
 int
 nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	int retc;
+	char defstr[DEFLEN];
 	retc = 0;
 
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)*args);
+	}
 	if ((cmdbuf == NULL) || (args == NULL)) {
 		NOMERR("%s\n", "Invalid Arguments!");
 		retc = BADARGS;
+	} else {
+		/* Explicitly zero local character array */
+		memset(defstr, 0, (size_t)DEFLEN);
+	}
+	/* Return status truncation OK due to length limitations */
+	retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+	upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
+
+	if (isgrp(cmdbuf)) {
+		strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
+		/* Flatten the rest of the argument vector */
+		for (register int written = 0; *args != NULL && retc > 0; args++) {
+			retc = snprintf(&defstr[written -1], (size_t)(DEFLEN - written), (written > 0) ? " %s" : "%s", *args);
+			written += retc;
+		}
+		if (dbg) {
+			NOMDBG("Flattened arguments to \"%s\"\n", defstr);
+		}
+		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, 
+				"INSERT INTO definitions VALUES (\'%s\', \'%s\', (SELECT id FROM categories WHERE name LIKE(\'%s\')));",
+				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG], defstr);
+	} else {
+		for (register int written = 0; *args != NULL && retc > 0; args++) {
+			if (dbg) {
+				NOMDBG("written = %d, *args = %s, defstr = %s\n", written, *args, defstr);
+			}
+			retc = snprintf(&defstr[written], (size_t)(DEFLEN - written), (written > 0) ? " %s" : "%s", *args);
+			written += retc;
+			//written = (written > 0) ? written - 1 : written;
+		}
+		if (dbg) {
+			NOMDBG("Flattened arguments to \"%s\"\n", defstr);
+		}
+		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, 
+				"INSERT INTO definitions VALUES (\'%s\', \'%s\', \'-1\');",
+				cmdbuf->defdata[NOMBRE_DBTERM], defstr);
+	}
+	retc = (retc > 0) ? 0 : retc;
+	if (dbg) {
+		NOMDBG("Returing %d to caller with gensql = %s\n", retc, cmdbuf->gensql);
 	}
 	return(retc);
 }
@@ -212,4 +257,19 @@ nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args) {
 static inline bool
 isgrp(const nomcmd * restrict cmd) {
 	return(((cmd->command & grpcmd) == grpcmd) ? true : false);
+}
+
+/* 
+ * Simple in-place modification of a string 
+ * capitalize all letters detected
+ * Simply unset the 6th bit if we find a letter.
+ * NOTE: This method only works for ASCII text, will need 
+ * to be refactored to support UTF-8 in the future
+ */
+static inline void
+upcase(char * restrict str) {
+	register uint_fast16_t i = 0;
+	for (; str[i] != 0; i++) {
+		str[i] = (str[i] >= 'a' && str[i] <= 'z') ? str[i] ^ 0x20 : str[i];
+	}
 }

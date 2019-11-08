@@ -105,7 +105,6 @@ typedef struct nombre_cmd_t {
 	/* assume we're using ASCII for now, full UTF-8 will be a stretch goal */
 	char defdata[2][DEFLEN]; /* Fold term/category into single 2D member */
 	char gensql[PATHMAX]; /* Generated SQL statement, capped at 1/4 PAGE_SIZE assuming 4k pages */
-	char *definition;  /* Collected definition (input only) */
 	sqlite3 *dbcon; /* database connection */
 } nomcmd;
 

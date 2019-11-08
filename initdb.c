@@ -338,7 +338,7 @@ nom_dbconn(nomcmd *cmdbuf) {
 		NOMERR("%s\n", "Invalid Parameters!");
 		retc = BADARGS;
 	} else {
-		if ((retc = sqlite3_open_v2(cmdbuf->filedata[NOMBRE_DBFILE], &cmdbuf->dbcon, SQLITE_OPEN_READWRITE|SQLITE_OPEN_FULLMUTEX|SQLITE_OPEN_PRIVATECACHE, NULL)) != SQLITE_OK) {
+		if ((retc = sqlite3_open_v2(cmdbuf->filedata[NOMBRE_DBFILE], &cmdbuf->dbcon, SQLITE_OPEN_READWRITE|SQLITE_OPEN_NOMUTEX|SQLITE_OPEN_PRIVATECACHE, NULL)) != SQLITE_OK) {
 			/* Something has gone wrong */
 			cmdbuf->dbcon = NULL;
 			NOMERR("Could not connect to database \"%s\" (%s)!\n", cmdbuf->filedata[NOMBRE_DBFILE], sqlite3_errstr(retc));

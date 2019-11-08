@@ -66,7 +66,7 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 	int retc;
 	uint32_t andmask;
 	retc = 0;
-	andmask = (~grpcmd);
+	andmask = (unsigned int)(~grpcmd);
 
 	if (dbg) {
 		NOMDBG("Entering with cmdbuf = %p, argstr = %p, andmask = %X\n", (void *)cmdbuf, (const void *)argstr, andmask);
@@ -83,12 +83,12 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		}
 	}
 
-	retc = parsecmd(cmdbuf, *argstr);
-	++argstr;
+	retc = parsecmd(cmdbuf, *argstr++);
 	if (cmdbuf->command == grpcmd) {
 		retc = parsecmd(cmdbuf, *argstr);
+		/* Only increment again if there's a good subcommand given */
 		if (retc == NOM_OK) {
-			++argstr;
+			argstr++;
 		}
 	}
 	/* 
@@ -132,12 +132,15 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 			break;
 		case (catscn):
 			break;
-		/* Assume the user just didn't type "def" */
+		/* 
+		 * Assume the user just didn't type "def" 
+		 * Push the pointer back to the first argument in the string
+		 */
 		default:
-			retc = nombre_lookup(cmdbuf, argstr);
+			retc = nombre_lookup(cmdbuf, --argstr);
 			break;
 	}
-	if ((retc == 0) && (cmdbuf->gensql != NULL)) {
+	if (retc == 0) {
 		retc = runcmd(cmdbuf, (int)strlen(cmdbuf->gensql));
 	}
 	if (dbg) {
@@ -168,14 +171,15 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
 		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
 	} else {
+		/* TODO: Accept return codes like SQLITE_DONE or SQLITE_OK as well */
 		if ((retc = sqlite3_step(stmt)) != SQLITE_ROW) {
 			NOMERR("Error with generated SQL (%d: %s)\n", retc, sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
 		}
 		for (register int_fast8_t i = 0; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
 			if (i != 0) {
-				fprintf(stdout,"%s\n", sqlite3_column_text(stmt,0));
-			} else {
 				fprintf(stdout,"Match #%d: %s\n", i, sqlite3_column_text(stmt,0));
+			} else {
+				fprintf(stdout,"%s\n", sqlite3_column_text(stmt,0));
 			}
 		}
 	}
