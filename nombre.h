@@ -92,7 +92,7 @@ typedef enum subcom_t {
 	grpcmd = (0x01 << 30)  /* Operating on a group */
 } subcom;
 
-#define CMDCOUNT 11
+#define CMDCOUNT 12
 
 /* 
  * Define data structure for command parsing 

@@ -45,6 +45,8 @@
 #include "nombre.h"
 #endif
 
+#define PARSE_SHORT 3
+
 extern char *__progname;
 extern char **environ;
 extern bool dbg;
@@ -55,13 +57,15 @@ static inline void upcase(char * restrict str);
 int
 parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	int retc;
-	size_t arglen;
+	size_t argsz, arglen;
 	retc = -1;
-	arglen = 0;
+	argsz = arglen = 0;
 
 	/* Define a list of valid command strings */
-	const char *cmdstrs[] = { "def", "add", "key", "ver", "imp", "exp", "src", "dmp", "upd", "vqy", "cts", "grp" }; /* "Short" */
-	const char *cmdstr_long[] = { "define", "adddef", "keyword", "verify", "import", "export", "srcadd", "dumpdb", "update", "vquery", "catscn", "grpcmd" }; /* "Long" */
+	const char *cmd[][CMDCOUNT] = { 
+		{ "def", "add", "key", "ver", "imp", "exp", "src", "dmp", "upd", "vqy", "cts", "grp" }, /* "Short" */
+		{ "define", "adddef", "keyword", "verify", "import", "export", "srcadd", "dumpdb", "update", "vquery", "catscn", "grpcmd" } /* "Long" */
+	};
 
 	if (dbg) {
 		NOMDBG("Entering with cmdbuf = %p, arg = %p, strnlen(%s) = %lu\n", (const void *)cmdbuf, (const void *)arg, arg, strnlen(arg,(size_t)6));
@@ -72,7 +76,8 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 		NOMERR("%s\n", "Given invalid arguments!");
 		retc = BADARGS;
 	}
-	arglen = strnlen(arg, (size_t)3);
+	/* Use arglen to determine which index to iterate over */
+	argsz = ((arglen = strnlen(arg, (size_t)PARSE_SHORT)) == PARSE_SHORT) ? 0 : 1;
 
 	/* 
 	 * Since we can be sure that we don't have a NULL pointer, check the string size 
@@ -80,42 +85,23 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	 * Loops are capped at valid commands aside from the group value, as that requires extra logic,
 	 * the group commands are assumed to be among the least frequent, and as such will only be checked 
 	 * after all single-value commands are exhausted.
-	 * XXX: These loops can probably be collapsed, but doing so is not a priority at this time
 	 */
-	if (arglen == 3) {
-		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)) ; i++) {
-			retc = memcmp(arg, cmdstrs[i], arglen);
-			if (dbg) { 
-				NOMDBG("i = %d, retc = %d, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", i, retc, cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
-			}
-			if (retc == 0) {
-				cmdbuf->command |= (0x01 << i);
-			}
+	for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)) ; i++) {
+		retc = memcmp(arg, cmd[argsz][i], arglen);
+		if (dbg) { 
+			NOMDBG("i = %d, retc = %d, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", i, retc, cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
 		}
-		if (memcmp(arg, cmdstrs[CMDCOUNT], arglen) == 0) {
-			if (dbg) {
-				NOMDBG("Detected group command with arg = %s\n", arg);
-			}
-			cmdbuf->command |= grpcmd;
-			retc = grpcmd;
+		if (retc == 0) {
+			cmdbuf->command |= (0x01 << i);
 		}
-	} else {
-		for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)); i++) {
-			retc = memcmp(arg, cmdstr_long[i], arglen);
-			if (dbg) { 
-				NOMDBG("i = %d, retc = %d, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", i, retc, cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
-			}
-			if (retc == 0) {
-				cmdbuf->command |= (0x01 << i);
-			}
+	}
+	/* Explicitly check for the group subcommand modifier */
+	if (memcmp(arg, cmd[argsz][CMDCOUNT - 1], arglen) == 0) {
+		if (dbg) {
+			NOMDBG("Detected group command with arg = %s\n", arg);
 		}
-		if (memcmp(arg, cmdstr_long[CMDCOUNT], arglen) == 0) {
-			if (dbg) {
-				NOMDBG("Detected group command with arg = %s\n", arg);
-			}
-			cmdbuf->command |= grpcmd;
-			retc = grpcmd;
-		}
+		cmdbuf->command |= grpcmd;
+		retc = grpcmd;
 	}
 
 	if (dbg) {
