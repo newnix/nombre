@@ -143,6 +143,9 @@ main(int ac, char **av) {
 	ac -= optind;
 	av += optind;
 
+	if (dbg) {
+		NOMDBG("Size of cmd: %lu, passing off to cook()\n", sizeof(cmd));
+	}
 	retc = cook(&flags, &cmd, (const char **)av);
 	if (cmd.dbcon != NULL) {
 		sqlite3_close_v2(cmd.dbcon);

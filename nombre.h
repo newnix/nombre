@@ -50,7 +50,7 @@
 
 /* Some buffer size settings */
 #define BUFSIZE 4096
-#define PATHMAX 1024
+#define PATHMAX 512
 #define DEFLEN  512
 
 /* Some general return mnemonics */

@@ -171,17 +171,37 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
 		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
 	} else {
-		/* TODO: Accept return codes like SQLITE_DONE or SQLITE_OK as well */
-		if ((retc = sqlite3_step(stmt)) != SQLITE_ROW) {
-			NOMERR("Error with generated SQL (%d: %s)\n", retc, sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
-		}
-		for (register int_fast8_t i = 0; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
-			if (i != 0) {
-				fprintf(stdout,"Match #%d: %s\n", i, sqlite3_column_text(stmt,0));
-			} else {
-				fprintf(stdout,"%s\n", sqlite3_column_text(stmt,0));
+		retc = sqlite3_step(stmt);
+	}
+	/* 
+	 * XXX:
+	 * This can almost certainly be better done via some other means, but 
+	 * this is the cleanest and most efficient means of re-using this switch 
+	 * statement that I'm able to find during my lunch break.
+	 */
+runreturn:
+	switch (retc) {
+		case SQLITE_ROW:
+			for (register uint_fast16_t i = 0; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
+				if (i > 0) {
+					fprintf(stdout,"Match #%d: %s\n", i, sqlite3_column_text(stmt,0));
+				} else {
+					fprintf(stdout,"%s\n", sqlite3_column_text(stmt,0));
+				}
 			}
-		}
+			goto runreturn; /* GOTO is dangerous, but here we just want to ensure that upon exiting the loop, 
+												 the return status is handled via the same switch */
+		case SQLITE_DONE:
+			sqlite3_finalize(stmt);
+			retc ^= retc;
+			break;
+		case SQLITE_BUSY:
+			sqlite3_reset(stmt);
+			sqlite3_step(stmt);
+			goto runreturn;
+		default:
+			/* This code should not be reachable! */
+			break;
 	}
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);

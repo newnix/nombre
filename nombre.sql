@@ -80,9 +80,11 @@ BEGIN;
 	('SQL', 'Structured Query Language', 2),
 	('AES', 'Advanced Encryption Standard', 3),
 	('API', 'Application Programming Interface', 4),
-	('MASTO', 'Sharthand for \"Mastodon\" social networking', -1)
+	('MASTO', 'Sharthand for "Mastodon" social networking', -1)
 	;
 COMMIT;
 
+-- NOTE:
+-- There may be some trigger functions defined and registered once I have time to investigate their use in SQLite3
 -- Last line of executed code, run an optimization pass
 PRAGMA optimize;

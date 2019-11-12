@@ -44,7 +44,7 @@ DESTDIR = /bin
 DIRMODE ?= 1750 
 
 ## Read and execute for all
-BINMODE ?= 0555
+BINMODE ?= 0755
 
 ## Usable make targets
 TARGETS = "debug install uninstall check run test"
