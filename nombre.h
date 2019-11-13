@@ -80,14 +80,14 @@ typedef enum subcom_t {
 	lookup = (0x01 << 0 ), /* Most likely command, look up given term */
 	define = (0x01 << 1 ), /* Add a definition */
 	search = (0x01 << 2 ), /* Perform a keyword search */
-	verify = (0x01 << 4 ), /* Run validation tests */
-	import = (0x01 << 5 ), /* Import definitions from file */
-	export = (0x01 << 6 ), /* Export definitons to file */
-	dumpdb = (0x01 << 7 ), /* Dump contents to stdout */
-	addsrc = (0x01 << 8 ), /* Add an entry for the definition source */
-	update = (0x01 << 9 ), /* Update a definition */
-	vquery = (0x01 << 10), /* Lookup with sources */
-	catscn = (0x01 << 11), /* Dump the definitions for the given category to stdout */
+	dumpdb = (0x01 << 3 ), /* Dump contents to stdout */
+	verify = (0x01 << 5 ), /* Run validation tests */
+	import = (0x01 << 6 ), /* Import definitions from file */
+	export = (0x01 << 7 ), /* Export definitons to file */
+	addsrc = (0x01 << 9 ), /* Add an entry for the definition source */
+	update = (0x01 << 10), /* Update a definition */
+	vquery = (0x01 << 11), /* Lookup with sources */
+	catscn = (0x01 << 12), /* Dump the definitions for the given category to stdout */
 	unknown = (0x01<< 29), /* Unable to determine what the user wants */
 	grpcmd = (0x01 << 30)  /* Operating on a group */
 } subcom;

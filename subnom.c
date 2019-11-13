@@ -123,6 +123,7 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		case (export):
 			break;
 		case (dumpdb):
+			retc = nombre_dbdump(cmdbuf);
 			break;
 		case (addsrc):
 			break;
@@ -174,11 +175,24 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 		retc = sqlite3_step(stmt);
 	}
 	/* 
+	 * TODO: Refactor to better handle the required status strings
 	 * XXX:
 	 * This can almost certainly be better done via some other means, but 
 	 * this is the cleanest and most efficient means of re-using this switch 
 	 * statement that I'm able to find during my lunch break.
 	 */
+	if (cmdbuf->command == dumpdb && retc == SQLITE_ROW) {
+		fprintf(stdout,"Scanning the nombre db...\n");
+		for (;retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
+			fprintf(stdout, "(%s / %s): %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1), sqlite3_column_text(stmt,2));
+		}
+	}
+	if (cmdbuf->command == search && retc == SQLITE_ROW) {
+		fprintf(stdout,"Found the following matches in the database...\n");
+		for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
+			fprintf(stdout, "%s: %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1));
+		}
+	}
 runreturn:
 	switch (retc) {
 		case SQLITE_ROW:
@@ -202,23 +216,6 @@ runreturn:
 		default:
 			/* This code should not be reachable! */
 			break;
-	}
-	if (dbg) {
-		NOMDBG("Returning %d to caller\n", retc);
-	}
-	return(retc);
-}
-
-int
-nomdb_dump(const nomcmd * restrict cmdbuf) {
-	int retc;
-	retc = 0;
-	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p\n", (const void *)cmdbuf);
-	}
-	if (cmdbuf == NULL) {
-		NOMERR("%s", "Given invalid input!\n");
-		retc = BADARGS;
 	}
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);

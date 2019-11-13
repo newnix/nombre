@@ -41,3 +41,4 @@ int nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args);
 int nombre_addsrc(nomcmd * restrict cmdbuf, const char ** restrict args);
 int nombre_vquery(nomcmd * restrict cmdbuf, const char ** restrict args);
 int nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args);
+int nombre_dbdump(nomcmd * restrict cmdbuf);
