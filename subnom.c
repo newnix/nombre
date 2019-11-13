@@ -171,51 +171,70 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 
 	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
 		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
-	} else {
-		retc = sqlite3_step(stmt);
 	}
 	/* 
-	 * TODO: Refactor to better handle the required status strings
-	 * XXX:
-	 * This can almost certainly be better done via some other means, but 
-	 * this is the cleanest and most efficient means of re-using this switch 
-	 * statement that I'm able to find during my lunch break.
+	 * Determine how to best proceed with processing the statement based on
+	 * the value of cmdbuf->command
 	 */
-	if (cmdbuf->command == dumpdb && retc == SQLITE_ROW) {
-		fprintf(stdout,"Scanning the nombre db...\n");
-		for (;retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
-			fprintf(stdout, "(%s / %s): %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1), sqlite3_column_text(stmt,2));
-		}
-	}
-	if (cmdbuf->command == search && retc == SQLITE_ROW) {
-		fprintf(stdout,"Found the following matches in the database...\n");
-		for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
-			fprintf(stdout, "%s: %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1));
-		}
-	}
-runreturn:
-	switch (retc) {
-		case SQLITE_ROW:
-			for (register uint_fast16_t i = 0; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
-				if (i > 0) {
-					fprintf(stdout,"Match #%d: %s\n", i, sqlite3_column_text(stmt,0));
+	switch (cmdbuf->command & (unsigned int)(~grpcmd)) {
+		case (lookup):
+			retc = sqlite3_step(stmt);
+			if (retc == SQLITE_DONE) {
+				fprintf(stdout,"%s: unknown\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+				return(retc ^= retc);
+			}
+			for (register uint_fast16_t i = 1; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
+				if (i > 1) {
+					fprintf(stdout,"  #%d: %s\n",  i, sqlite3_column_text(stmt,0));
 				} else {
-					fprintf(stdout,"%s\n", sqlite3_column_text(stmt,0));
+					fprintf(stdout,"%s: %s\n", cmdbuf->defdata[NOMBRE_DBTERM], sqlite3_column_text(stmt,0));
 				}
 			}
-			goto runreturn; /* GOTO is dangerous, but here we just want to ensure that upon exiting the loop, 
-												 the return status is handled via the same switch */
-		case SQLITE_DONE:
-			sqlite3_finalize(stmt);
 			retc ^= retc;
 			break;
-		case SQLITE_BUSY:
-			sqlite3_reset(stmt);
-			sqlite3_step(stmt);
-			goto runreturn;
-		default:
-			/* This code should not be reachable! */
+		case (define):
+			retc = sqlite3_step(stmt);
+			if (retc == SQLITE_DONE) {
+				sqlite3_finalize(stmt);
+				if ((cmdbuf->command & grpcmd) == grpcmd) {
+					fprintf(stdout,"Added definition for %s/%s\n",cmdbuf->defdata[NOMBRE_DBCATG], cmdbuf->defdata[NOMBRE_DBTERM]);
+				} else {
+					fprintf(stdout,"Added definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+				}
+				retc ^= retc;
+			}
 			break;
+		case (dumpdb):
+			fprintf(stdout,"Here's what I know:\n");
+			retc = sqlite3_step(stmt);
+			for (register uint_fast16_t i = 1; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
+				fprintf(stdout,"  (%s/%s): %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1), sqlite3_column_text(stmt,2));
+			}
+			if (retc != SQLITE_DONE) {
+				NOMERR("Error processing command! (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+			} else {
+				retc ^= retc;
+			}
+			sqlite3_finalize(stmt);
+			break;
+		case (search):
+			fprintf(stdout,"Found the following matches:\n");
+			retc = sqlite3_step(stmt);
+			for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
+				fprintf(stdout,"  %s: %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1));
+			}
+			if (retc != SQLITE_DONE) {
+				NOMERR("Error processing command! (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+			} else {
+				retc ^= retc;
+			}
+			sqlite3_finalize(stmt);
+			break;
+		default:
+			/* Should not be reachable */
+			NOMERR("%s\n", "It should not be possible to reach this code!");
+			sqlite3_finalize(stmt);
+			return(retc);
 	}
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);
