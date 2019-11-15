@@ -4,7 +4,7 @@
 PRAGMA cell_size_check=true;
 PRAGMA case_sensitive_like=true; -- Most searches will explicitly use 'ilike' anyway
 PRAGMA secure_delete=true;
-PRAGMA foreign_keys=on; -- Just in case it's not enforced by default
+PRAGMA foreign_keys=0; -- Just in case it's not enforced by default
 
 -- These pragma commands set version info
 PRAGMA user_version=0;
@@ -13,12 +13,50 @@ PRAGMA application_id=234;
 
 -- Build out the tables
 
+DROP TABLE IF EXISTS categories;
 -- Allow categorization of definitions
 CREATE TABLE IF NOT EXISTS categories (
 	id integer UNIQUE NOT NULL, -- Numeric ID of the category
 	name text UNIQUE NOT NULL, -- Human friendly category name
 	PRIMARY KEY (id,name)
 );
+
+-- Initialize the categories table with some default values
+-- can be extended with the nombre command, or manually, of course
+-- NOTE: Look at normalizing the category lengths, with a longer optional name
+BEGIN;
+	INSERT INTO categories VALUES
+	(-1, 'UNCAT'),
+	(0, '*NIX'),
+	(1, 'NET'),
+	(2, 'APPS'),
+	(3, 'SEC'),
+	(4, 'DEVEL');
+COMMIT;
+
+DROP TABLE IF EXISTS category_verbose;
+-- Allow longer category labels
+CREATE TABLE IF NOT EXISTS category_verbose (
+	id integer UNIQUE NOT NULL, -- Same primary key as in categories
+	short text UNIQUE NOT NULL, -- Same as the 'name' in categories
+	nlong text UNIQUE NOT NULL, -- Longer/more verbose category name
+	PRIMARY KEY (id,nlong),
+	FOREIGN KEY (id) REFERENCES categories(id),
+	FOREIGN KEY (short) REFERENCES categories(name)
+);
+
+-- Add in the long category definitions
+BEGIN;
+	INSERT INTO category_verbose (id, short, nlong) VALUES
+	(-1, 'UNCAT', 'UNCATEGORIZED'),
+	(0, '*NIX', 'UNIX Like Systems'),
+	(1, 'NET', 'Networking'),
+	(2, 'APPS', 'Applications'),
+	(3, 'SEC', 'Security'),
+	(4, 'DEVEL', 'Programming/Development');
+COMMIT;
+
+PRAGMA foreign_keys=1;
 
 -- Primary definition table
 CREATE TABLE IF NOT EXISTS definitions (
@@ -55,19 +93,9 @@ CREATE TABLE IF NOT EXISTS defrefs (
 	FOREIGN KEY (category) REFERENCES categories(id)
 );
 
--- Initialize the categories table with some default values
--- can be extended with the nombre command, or manually, of course
-BEGIN;
-	INSERT INTO categories VALUES
-	(-1, 'UNCATEGORIZED'),
-	(0, 'NIX'),
-	(1, 'NETWORKING'),
-	(2, 'APPLICATIONS'),
-	(3, 'SECURITY'),
-	(4, 'PROGRAMMING');
-COMMIT;
 
 -- Define some indices for quicker lookups on certain values expected to be common
+CREATE INDEX IF NOT EXISTS altdata_idx ON altdefs (term, defno);
 
 -- Provide some baseline data for the database to have available
 BEGIN;
@@ -84,7 +112,5 @@ BEGIN;
 	;
 COMMIT;
 
--- NOTE:
--- There may be some trigger functions defined and registered once I have time to investigate their use in SQLite3
 -- Last line of executed code, run an optimization pass
 PRAGMA optimize;

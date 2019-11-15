@@ -80,7 +80,7 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 		retc = BADARGS;
 	}
 	/* Use arglen to determine which index to iterate over */
-	argsz = ((arglen = strnlen(arg, (size_t)PARSE_SHORT)) == PARSE_SHORT) ? 0 : 1;
+	argsz = ((arglen = strnlen(arg, ((size_t)PARSE_SHORT * 2))) == PARSE_SHORT) ? 0 : 1;
 
 	/* 
 	 * Since we can be sure that we don't have a NULL pointer, check the string size 
@@ -92,7 +92,8 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)) ; i++) {
 		retc = memcmp(arg, cmd[argsz][i], arglen);
 		if (dbg) { 
-			NOMDBG("i = %d, retc = %d, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", i, retc, cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
+			NOMDBG("i = %d, retc = %d, cmd[%lu][%d] = %s, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", 
+					i, retc, argsz, i, cmd[argsz][i], cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
 		}
 		if (retc == 0) {
 			cmdbuf->command |= (0x01 << i);
@@ -161,15 +162,15 @@ nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args) {
 		/* Explicitly zero local character array */
 		memset(defstr, 0, (size_t)DEFLEN);
 	}
-	/* Return status truncation OK due to length limitations */
-	retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
-	upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
 
 	if (isgrp(cmdbuf)) {
-		strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
+		retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
+		upcase(cmdbuf->defdata[NOMBRE_DBCATG]);
+		retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+		upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
 		/* Flatten the rest of the argument vector */
 		for (register int written = 0; *args != NULL && retc > 0; args++) {
-			retc = snprintf(&defstr[written -1], (size_t)(DEFLEN - written), (written > 0) ? " %s" : "%s", *args);
+			retc = snprintf(&defstr[written], (size_t)(DEFLEN - written), (written > 0) ? " %s" : "%s", *args);
 			written += retc;
 		}
 		if (dbg) {
@@ -177,8 +178,10 @@ nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args) {
 		}
 		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, 
 				"INSERT INTO definitions VALUES (\'%s\', \'%s\', (SELECT id FROM categories WHERE name LIKE(\'%s\')));",
-				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG], defstr);
+				cmdbuf->defdata[NOMBRE_DBTERM], defstr, cmdbuf->defdata[NOMBRE_DBCATG]);
 	} else {
+		retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+		upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
 		for (register int written = 0; *args != NULL && retc > 0; args++) {
 			if (dbg) {
 				NOMDBG("written = %d, *args = %s, defstr = %s\n", written, *args, defstr);
@@ -268,7 +271,8 @@ nombre_dbdump(nomcmd * restrict cmdbuf) {
 		NOMERR("%s\n", "Invalid arguments!\n");
 		retc = BADARGS;
 	}
-	retc = strlcat(cmdbuf->gensql, "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d ON c.id = d.category ORDER BY 1,2 DESC;", (size_t)DEFLEN);
+	/* Precision loss is acceptable as the given write limit is well under INT_MAX */
+	retc = (int)strlcat(cmdbuf->gensql, "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d ON c.id = d.category ORDER BY 1,2 DESC;", (size_t)DEFLEN);
 	retc = (retc > 0) ? retc ^ retc : retc;
 	
 	if (dbg) {

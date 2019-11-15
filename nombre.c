@@ -203,6 +203,9 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 					NOMERR("%s\n", "Failed to get database name!\n");
 				}
 				break;
+			case (DBTEST):
+				NOMWRN("%s\n", "The self-test functionality is not yet implemented!");
+				break;
 			/*
 			 * No behaviour changing flags passed, default behaviour
 			 */

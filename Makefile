@@ -75,10 +75,13 @@ debug: mkdest ${SRCS}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 
 install: mkdest ${SRCS}
-	@$(CC) ${CLANG_FLAGS} ${SRCS} -o ${TARGET}
+	@$(CC) ${LIBS} ${INCS} ${CLANG_FLAGS} ${SRCS} -o ${TARGET}
 	@strip -s ${TARGET}
 	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
+	@echo "Hit ^C in the next 5 seconds to prevent bootstrapping the database!"
+	@sleep 5
+	@${PREFIX}${DESTDIR}/${TARGET} -Ii nombre.sql
 
 ## Create the installation directory
 mkdest: 
