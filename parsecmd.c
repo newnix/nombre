@@ -259,21 +259,40 @@ nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	return(retc);
 }
 
+/* 
+ * The group modifier for this function depends on the presence of 
+ * a group name. If no name is given, we will list the currently defined groups,
+ * otherwise, we use the group id as an output filter for the database listing
+ */
 int
-nombre_dbdump(nomcmd * restrict cmdbuf) {
+nombre_dbdump(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	int retc;
 	retc = 0;
 
 	if (dbg) {
 		NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
 	}
+
+	/* A NULL pointer is acceptable as the 'args' value */
 	if (cmdbuf == NULL) {
 		NOMERR("%s\n", "Invalid arguments!\n");
 		retc = BADARGS;
 	}
-	/* Precision loss is acceptable as the given write limit is well under INT_MAX */
-	retc = (int)strlcat(cmdbuf->gensql, "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d ON c.id = d.category ORDER BY 1,2 DESC;", (size_t)DEFLEN);
-	retc = (retc > 0) ? retc ^ retc : retc;
+	if (retc == NOM_OK) {
+		if (isgrp(cmdbuf)) {
+			if (*args != NULL) {
+				retc = snprintf(cmdbuf->gensql, (size_t)DEFLEN, "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d"
+						" ON c.id = d.category WHERE d.category = (SELECT id FROM categories WHERE name LIKE(\'%s\')) ORDER BY 2 DESC;", *args);
+			} else {
+				retc = (int)strlcat(cmdbuf->gensql, "SELECT  id, short, nlong FROM category_verbose ORDER BY 1 DESC;", (size_t)DEFLEN);
+			}
+		} else {
+			/* Precision loss is acceptable as the given write limit is well under INT_MAX */
+			retc = (int)strlcat(cmdbuf->gensql, "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d ON c.id = d.category ORDER BY 1,2 DESC;", (size_t)DEFLEN);
+		}
+		/* Clear the counter values from string operations prior to returning */
+		retc = (retc > NOM_OK) ? retc ^ retc : retc;
+	}
 	
 	if (dbg) {
 		NOMDBG("Returinng %d to caller with cmdbuf->gensql= %s\n", retc, cmdbuf->gensql);

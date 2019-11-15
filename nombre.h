@@ -81,12 +81,14 @@ typedef enum subcom_t {
 	define = (0x01 << 1 ), /* Add a definition */
 	search = (0x01 << 2 ), /* Perform a keyword search */
 	dumpdb = (0x01 << 3 ), /* Dump contents to stdout */
+	/* XXX: This is a command-line switch, remove in favore of something else */
 	verify = (0x01 << 5 ), /* Run validation tests */
 	import = (0x01 << 6 ), /* Import definitions from file */
 	export = (0x01 << 7 ), /* Export definitons to file */
 	addsrc = (0x01 << 9 ), /* Add an entry for the definition source */
 	update = (0x01 << 10), /* Update a definition */
 	vquery = (0x01 << 11), /* Lookup with sources */
+	/* XXX: Replace with more useful meaning */
 	catscn = (0x01 << 12), /* Dump the definitions for the given category to stdout */
 	unknown = (0x01<< 29), /* Unable to determine what the user wants */
 	grpcmd = (0x01 << 30)  /* Operating on a group */

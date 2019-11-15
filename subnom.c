@@ -123,7 +123,7 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		case (export):
 			break;
 		case (dumpdb):
-			retc = nombre_dbdump(cmdbuf);
+			retc = nombre_dbdump(cmdbuf, argstr);
 			break;
 		case (addsrc):
 			break;
