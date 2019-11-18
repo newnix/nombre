@@ -66,8 +66,8 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 
 	/* Define a list of valid command strings */
 	const char *cmd[][CMDCOUNT] = { 
-		{ "def", "add", "key", "lst", "ver", "imp", "exp", "src", "upd", "vqy", "cts", "grp" }, /* "Short" */
-		{ "define", "adddef", "keyword", "list", "verify", "import", "export", "srcadd", "update", "vquery", "catscn", "grpcmd" } /* "Long" */
+		{ "def", "add", "key", "lst", "new", "imp", "exp", "src", "upd", "vqy", "cts", "grp" }, /* "Short" */
+		{ "define", "adddef", "keyword", "list", "new", "import", "export", "srcadd", "update", "vquery", "catscn", "grpcmd" } /* "Long" */
 	};
 
 	if (dbg) {
@@ -94,6 +94,15 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 		if (dbg) { 
 			NOMDBG("i = %d, retc = %d, cmd[%lu][%d] = %s, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", 
 					i, retc, argsz, i, cmd[argsz][i], cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
+		}
+		/* 
+		 * If we get the "new" subcommand without the group subcommand,
+		 * set to lookup instead.
+		 */
+		if (i == new && (! isgrp(cmdbuf))) {
+			cmdbuf->command = lookup;
+			retc = NOM_OK; /* XXX: May need a better return status here to indicate overridden bad value */
+			break; /* Force exiting the loop early */
 		}
 		if (retc == 0) {
 			cmdbuf->command |= (0x01 << i);
@@ -296,6 +305,29 @@ nombre_dbdump(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	
 	if (dbg) {
 		NOMDBG("Returinng %d to caller with cmdbuf->gensql= %s\n", retc, cmdbuf->gensql);
+	}
+	return(retc);
+}
+
+/* 
+ * At this point, the argument vector should only have the new group name,
+ * the verbose name, and optionally the group description. 
+ * If we only get the new group label, we'll add in some boilerplate data, but the 
+ * id is always generated as "SELECT MAX(id)+1 FROM categories;" in a subquery.
+ */
+int
+nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
+	int retc;
+	retc = 0;
+	if (dbg) {
+		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)*args);
+	}
+	if (cmdbuf == NULL || args == NULL) {
+		NOMERR("%s\n", "Invalid parameters!");
+		retc = BADARGS;
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller with gensql = %s\n", retc, cmdbuf->gensql);
 	}
 	return(retc);
 }

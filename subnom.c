@@ -116,7 +116,8 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		case (search):
 			retc = nombre_ksearch(cmdbuf, argstr);
 			break;
-		case (verify):
+		case (new):
+			retc = nombre_newgrp(cmdbuf, argstr);
 			break;
 		case (import):
 			break;

@@ -64,6 +64,7 @@
 #define DBINIT 0x02
 #define INTSQL 0x04
 #define DBTEST 0x08
+#define DBEXCH 0x10
 
 /* Declare extern/global vars */
 extern char *__progname;
@@ -84,11 +85,11 @@ bool dbg = false;
  * 0 0 0 0 0 0 0 0
  * ===============
  * | | | | | | | \- Help
- * | | | | | | \- Reserved
- * | | | | | \- Initialize database
- * | | | | \- Reserved
- * | | | \- Initialization SQL
- * | | \- Self-test
+ * | | | | | | \- Initialize the database
+ * | | | | | \- Initialization SQL
+ * | | | | \- Run self-test
+ * | | | \- Data exchange
+ * | | \- Reserved
  * | \- Reserved
  * \- Reserved
  */
@@ -111,14 +112,15 @@ main(int ac, char **av) {
 				flags |= HELPME;
 				break;
 			case 'd':
-				strlcpy(cmd.filedata[0], optarg, (size_t)PATHMAX);
+				strlcpy(cmd.filedata[NOMBRE_DBFILE], optarg, (size_t)PATHMAX);
 				break;
 			case 'i':
 				flags |= INTSQL;
-				strlcpy(cmd.filedata[1], optarg, (size_t)PATHMAX);
+				strlcpy(cmd.filedata[NOMBRE_INITSQL], optarg, (size_t)PATHMAX);
 				break;
 			case 'f':
-				strlcpy(cmd.filedata[2], optarg, (size_t)PATHMAX);
+				flags |= DBEXCH;
+				strlcpy(cmd.filedata[NOMBRE_IOFILE], optarg, (size_t)PATHMAX);
 				break;
 			case 'v':
 				flags |= DBTEST;
@@ -204,8 +206,11 @@ cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict 
 				}
 				break;
 			case (DBTEST):
-				NOMWRN("%s\n", "The self-test functionality is not yet implemented!");
-				break;
+				NOMWRN("%s\n\tExiting...\n", "The self-test functionality is not yet implemented!");
+				return(NOM_OK);
+			case (DBEXCH):
+				NOMWRN("%s\n\tExiting...\n", "The database interchange functionality is not yet implemented!");
+				return(NOM_OK);
 			/*
 			 * No behaviour changing flags passed, default behaviour
 			 */
