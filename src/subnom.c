@@ -162,7 +162,7 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 	if (dbg) {
 		NOMDBG("Entering with cmdbuf = %p, genlen = %d, cmdbuf->gensql = %p\n", (void *)cmdbuf, genlen, (void *)cmdbuf->gensql);
 	}
-	if (cmdbuf == NULL || cmdbuf->gensql == NULL) {
+	if (cmdbuf == NULL) {
 		NOMERR("%s", "Given invalid input!\n");
 		retc = BADARGS;
 	}
