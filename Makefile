@@ -1,7 +1,7 @@
 .POSIX:
 
 ## This really shouldn't be overridden
-PROJECT ?= nombre
+PROJECT = nombre
 ## Invoke with -DDVCS=git to use the git functions instead
 DVCS ?= fossil
 ## Set the suffixes to catch all .c and .o files
@@ -23,18 +23,20 @@ DBG =
 
 ## Flags used to build under GCC
 ## Generic flags
-LIBS = -L/usr/local/lib -L/usr/lib -lsqlite3 #-lpthread -lc
+LIBS = -L/usr/local/lib -L/usr/lib -lsqlite3 -lc
 INCS = -I/usr/local/include -I/usr/include
 ## List of *.c files to build
 SRCS = nombre.c initdb.c dbverify.c parsecmd.c subnom.c
-SRCDIR = src/
+HEADERS = $(SRCS:.c=.h)
+OBJ = $(SRC:.c=.o)
+
 
 ## TODO: Figure this out
 .if ${CC:Mclang-devel} || ${CC:Mclang}
 ## Flags used to build under Clang/LLVM
 ## Not all flags exist or mean the same for all compilers
 WARN = -Wextra -Wall -Wparentheses -Weverything -pedantic
-LDFLAGS= --icf=safe -z relro  -z now  -z combreloc
+LDFLAGS= -z relro  -z now  -z combreloc #--icf=safe 
 CFLAGS = -std=${STD} -c -Oz -fpic -fpie -fPIC -fPIE \
 							 -fvectorize -fstack-protector -fstrict-enums -fstrict-return -fstack-protector-strong \
 							 -fmerge-all-constants -fstack-protector-all -Qn -fstrict-aliasing \
@@ -102,12 +104,12 @@ help:
 check: ${SRCS}
 	@clang-tidy-devel -checks=* $?
 
-debug: mkdest bin/nombre
+debug: mkdest nombre
 	@echo "[${.TARGET}]: Working in ${.CURDIR}"
-	(cd "${.CURDIR}/bin" && install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR})
+	install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 
-install: mkdest bin/nombre
+install: mkdest nombre
 	@echo "[${.TARGET}]: Working in ${.CURDIR}"
 	@strip -s bin/${TARGET}
 	@install -vm ${BINMODE} bin/${TARGET} ${PREFIX}${DESTDIR}
@@ -125,39 +127,16 @@ mkdest: dirs
 ## including the test directory
 dirs:
 	@echo "[${.TARGET}]: Working in ${.CURDIR}"
-	@mkdir -pm 1750 ${.CURDIR}/bin
-	@mkdir -pm 1750 ${.CURDIR}/obj
-	@mkdir -pm 1750 ${.CURDIR}/src
 	@mkdir -pm 1750 ${.CURDIR}/test
 
 ## Build the object files
-objects: ${.OBJDIR}/nombre.o ${.OBJDIR}/initdb.o ${.OBJDIR}/dbverify.o ${.OBJDIR}/parsecmd.o ${.OBJDIR}/subnom.o
-	@echo "[${.TARGET}]: Built object files"
+.c.o:
+	$(CC) ${CFLAGS} -c $<
 
-${.OBJDIR}/nombre.o: ${SRCDIR}nombre.c
-	@echo "[${.TARGET}]: Compiling ${.OODATE}"
-	@$(CC) ${INCS} ${CFLAGS} -o ${.TARGET} ${.ALLSRC}
+$(OBJ): ${HEADERS}
 
-${.OBJDIR}/initdb.o: ${SRCDIR}initdb.c
-	@echo "[${.TARGET}]: Compiling ${.OODATE}"
-	@$(CC) ${INCS} ${CFLAGS} -o ${.TARGET} ${.ALLSRC}
-
-${.OBJDIR}/dbverify.o: ${SRCDIR}dbverify.c
-	@echo "[${.TARGET}]: Compiling ${.OODATE}"
-	@$(CC) ${INCS} ${CFLAGS} -o ${.TARGET} ${.ALLSRC}
-
-${.OBJDIR}/parsecmd.o: ${SRCDIR}parsecmd.c
-	@echo "[${.TARGET}]: Compiling ${.OODATE}"
-	@$(CC) ${INCS} ${CFLAGS} -o ${.TARGET} ${.ALLSRC}
-
-${.OBJDIR}/subnom.o: ${SRCDIR}subnom.c
-	@echo "[${.TARGET}]: Compiling ${.OODATE}"
-	@$(CC) ${INCS} ${CFLAGS} -o ${.TARGET} ${.ALLSRC}
-
-## Link the object files
-bin/nombre: objects obj/nombre.o obj/initdb.o obj/dbverify.o obj/parsecmd.o obj/subnom.o
-	@echo "[${.TARGET}]: In ${.CURDIR}, Linking ${.ALLSRC:M*.o}"
-	(cd ${.CURDIR} && ${LD} ${LIBS} ${LDFLAGS} -o ${.TARGET} ${.ALLSRC:M*.o})
+$(PROJECT):
+	$(CC) -o $@ $(OBJ) ${LDFLAGS}
 
 push:
 	@gitsync -r ${PROJECT} -n master

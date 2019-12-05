@@ -3,6 +3,27 @@
 A simple SQLite3 database manager for recording and retrtieving terms, like having your own dictionary in 
 a single database file with a small binary utility to manage it.
 
+## Dependencies
+All my primary systems are some form of BSD, so the GNU build tools are not regularly tested. To that end,
+the Makefile used here is designed with some conditionals that change the compilation behaviour based on the given
+value of `CC` when processing the file. It is possible to replicate this functionality in other formats, but I can't
+guarantee a timetable for support. 
+
+Build Dependencies:
+
+	* A C99 compliant compiler and linker (CC and Clang/LLVM are fine)
+	* BSD Make (often called `bmake` in Linux distro repos
+	* Standard C header files (Consider installing the libc-devel packages on Linux distros)
+	* SQLite3 header files (Possibly a separate -devel package)
+	* The SQLite3 library (Probably already installed)
+
+Runtime Dependencies:
+
+	* A POSIX-ish OS
+	* A C99 compliant C library (optional)
+	* The SQLite3 library (optional)
+
+
 ## Interface
 The `nombre(1)` interface is a semi-natural language command line primarily driven by the use of subcommands,
 which will then construct and run SQL queries to interface with the database on your behalf. This allows 
