@@ -75,7 +75,7 @@ extern bool dbg;
 int cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict argstr);
 inline static void usage(void);
 
-#ifdef BUILD_DEBUG
+#ifdef NOMBRE_DEBUG
 bool dbg = true;
 #else 
 bool dbg = false;

@@ -1,5 +1,7 @@
 .POSIX:
 
+include config.mk
+
 ## This really shouldn't be overridden
 PROJECT = nombre
 ## Invoke with -DDVCS=git to use the git functions instead
@@ -7,61 +9,24 @@ DVCS ?= fossil
 ## Set the suffixes to catch all .c and .o files
 .SUFFIXES = .c .o
 
-## Switch this to use whatever C99 compliant compiler you have/prefer
-## there should not be any OS or compiler dependant code in this project
-## NOTE: This is Clang 8.0.0 at the time of starting this project
-CC = clang-devel
-LD = ld.lld-devel
+## The standard used for the codebase
 STD = c99
 
-## Additional flags used in "debug" builds
-.ifdef DEBUG
-DBG = -g3 -ggdb -DBUILD_DEBUG
-.else
-DBG = 
-.endif
-
-## Flags used to build under GCC
-## Generic flags
-LIBS = -L/usr/local/lib -L/usr/lib -lsqlite3 -lc
-INCS = -I/usr/local/include -I/usr/include
 ## List of *.c files to build
 SRCS = nombre.c initdb.c dbverify.c parsecmd.c subnom.c
 HEADERS = $(SRCS:.c=.h)
-OBJ = $(SRC:.c=.o)
+OBJ = $(SRCS:.c=.o)
 
-
-## TODO: Figure this out
-.if ${CC:Mclang-devel} || ${CC:Mclang}
-## Flags used to build under Clang/LLVM
-## Not all flags exist or mean the same for all compilers
-WARN = -Wextra -Wall -Wparentheses -Weverything -pedantic
-LDFLAGS= -z relro  -z now  -z combreloc #--icf=safe 
-CFLAGS = -std=${STD} -c -Oz -fpic -fpie -fPIC -fPIE \
-							 -fvectorize -fstack-protector -fstrict-enums -fstrict-return -fstack-protector-strong \
-							 -fmerge-all-constants -fstack-protector-all -Qn -fstrict-aliasing \
-							 -ffunction-sections -fdata-sections
-.elif (${CC:Mgcc})
-## TODO: Fill out with GCC specific flags
-WARN = -Wextra -pedantic -Wall
-LDFLAGS= -z combreloc -z relro -z now -fpie -fpic --gc-sections
-CFLAGS = -std=${STD} -Os -fpic -fpie -fPIC -fPIE -fstack-protector-all -fstack-protector-strong -fstrict-aliasing \
-				 -ffunction-sections -fdata-sections
-.else
-## Restrict to the options that should be available nearly everywhere
-CFLAGS = -Os -std=${STD} -fpic -fpie -fPIC -fPIE
-LDFLAGS= -z relro -z now
-.endif ## End of compiler checks
+### Restrict to the options that should be available nearly everywhere
+#CFLAGS = -Os -std=${STD} -fpic -fpie -fPIC -fPIE
+#LDFLAGS= -z relro -z now
 
 ## Now ensure the compiler and linker arguments include the appropriate path info
 CFLAGS += ${INCS}
-#CFLAGS += ${LIBS}
-LDFLAGS+= ${LIBS}
+LDFLAGS+= ${LIBS} ${LINKTO}
 
-## Add the debug flags to the CFLAGS for the system
-.ifdef DEBUG
+## Add the debug flags, if unset will not change CFLAGS
 CFLAGS += ${DBG}
-.endif 
 
 ## These variables control where the binary actually gets installed
 ## The name of the binary
@@ -85,7 +50,21 @@ CTRL_TARGETS = "config help clean purge"
 ## The "help" flag for the binary to run usage()
 HELP = -h
 
+## Build the object files
+.c.o:
+	$(CC) ${CFLAGS} -c $< -o ${<:.c=.o}
+
+nombre.o: ${HEADERS}
+initdb.o: nombre.h initdb.h
+parsecmd.o: nombre.h parsecmd.h
+subnom.o: nombre.h initdb.h parsecmd.h subnom.h
+dbverify.o: nombre.h dbverify.h
+
+$(PROJECT): $(OBJ)
+	$(CC) -o $@ $? -fuse-ld=${LD} ${LDFLAGS}
+
 help:
+	@echo "Objects: $(OBJ)"
 	@printf "Build system configuration for %s:\n" ${PROJECT}
 	@printf "\tValid targets: %s\n" ${TARGETS}
 	@printf "\tDVCS targets: %s\n" ${DVCS_TARGETS}
@@ -96,23 +75,24 @@ help:
 	@printf "\tDirectory Permissions: %04o\n" ${DIRMODE}
 	@printf "\tPermissions: %04o\n" ${BINMODE}
 	@printf "\tCompiler: %s\n" "${CC}"
+	@printf "\tLinker: %s\n" "${LD}"
 	@printf "\tCFLAGS: %s\n" "${CFLAGS}"
 	@printf "\tLDFLAGS: %s\n" "${LDFLAGS}"
-	@printf "\nTo change these settings run \`make config\` or \`%s Makefile\`\n" "${EDITOR}"
+	@printf "\nTo change these settings run \`make config\` or \`%s config.mk\`\n" "${EDITOR}"
 
 ## Currently only set to work with clang-devel
 check: ${SRCS}
 	@clang-tidy-devel -checks=* $?
 
-debug: mkdest nombre
-	@echo "[${.TARGET}]: Working in ${.CURDIR}"
+build: mkdest nombre
+	@echo "[${@}]: Working in ${PWD}"
 	install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 
 install: mkdest nombre
-	@echo "[${.TARGET}]: Working in ${.CURDIR}"
-	@strip -s bin/${TARGET}
-	@install -vm ${BINMODE} bin/${TARGET} ${PREFIX}${DESTDIR}
+	@echo "[${@}]: Working in ${PWD}"
+	@strip -s ${TARGET}
+	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 	@echo "Hit ^C in the next 5 seconds to prevent bootstrapping the database!"
 	@sleep 5
@@ -120,47 +100,40 @@ install: mkdest nombre
 
 ## Create the installation directory
 mkdest: dirs
-	@echo "[${.TARGET}]: Working in ${.CURDIR}"
+	@echo "[${@}]: Ensuring ${PREFIX}${DESTDIR} exists"
 	@mkdir -pm ${DIRMODE} ${PREFIX}${DESTDIR}
 
 ## Create an intermediate build location,
 ## including the test directory
 dirs:
-	@echo "[${.TARGET}]: Working in ${.CURDIR}"
-	@mkdir -pm 1750 ${.CURDIR}/test
-
-## Build the object files
-.c.o:
-	$(CC) ${CFLAGS} -c $<
-
-$(OBJ): ${HEADERS}
-
-$(PROJECT):
-	$(CC) -o $@ $(OBJ) ${LDFLAGS}
+	@echo "[${@}]: Working in ${PWD}"
+	@mkdir -pm 1750 ${PWD}/test
 
 push:
 	@gitsync -r ${PROJECT} -n master
 
 commit:
-	@(cd ${.CURDIR} && ${DVCS} commit)
+	@(cd ${PWD} && ${DVCS} commit)
 
 status:
-	@echo "[${.TARGET}]: In ${.CURDIR}"
-	@(cd ${.CURDIR} && ${DVCS} status)
+	@echo "[${@}]: In ${PWD}"
+	@(cd ${PWD} && ${DVCS} status)
 
 diff:
-	@(cd ${.CURDIR} && ${DVCS} diff)
+	@(cd ${PWD} && ${DVCS} diff)
 
 config:
-	@$(EDITOR) ${.CURDIR}/Makefile
+	@$(EDITOR) ${PWD}/config.mk
 
-uninstall:
-	@echo "This target is not yet ready"
+uninstall: ;
+	@echo "[$@]: Deleting ${PREFIX}${DESTDIR}/${PROJECT}"
+	@rm -f ${PREFIX}${DESTDIR}/${PROJECT}
 
 purge:
 	@echo "This target is not yet ready"
 
 clean:
-	@echo "[${.TARGET}]: Cleaning up build objects..."
-	@rm -vf ${.CURDIR}/obj/*
-	@rm -vf ${.CURDIR}/bin/*
+	@echo "[${@}]: Cleaning up build objects..."
+	@rm -vf ${PWD}/obj/*
+	@rm -vf ${PWD}/bin/*
+	@rm -f ${PWD}/${PROJECT}
