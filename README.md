@@ -22,7 +22,34 @@ Runtime Dependencies:
 	* A POSIX-ish OS
 	* A C99 compliant C library (optional)
 	* The SQLite3 library (optional)
+	
+	Note: These are optional runtime deps due to the possibility of static linking. In the default scenario, 
+	dynamic linking is used instead, and requires the libraries to be available at runtime to work properly. 
 
+
+# Installation
+After cloning the repo, you can run `make help` to see the current build settings. The defaults should be fine for most 
+installs, though the primary options can be set through `make config` which will open up your `$EDITOR` to view/edit
+`config.mk`.
+
+These build flags should be appropriate for all UNIX-like systems aside from MacOS, in which case the "failsafe" settings should allow 
+the build to complete without issue. Simply uncomment the line desired to use either GCC or Clang/LLVM to build `nombre(1)` and comment out
+the other two.
+
+If you do not wish to have `nombre(1)` installed to `${HOME}/nombre/bin`, simply change the values of `PREFIX` and `DESTDIR` in `config.mk` 
+to reflect the desired installation directory. Just take note of any necessary permissions if installing outside of your home directory. 
+You will also need to ensure that whatever directory you install to is in your `PATH`, so in the default scenario, you'd want to run something 
+like the following (assuming Bash is the interactive shell being used):
+
+```
+export PATH="${PATH}:${HOME}/bin"
+printf "export %s=%s\n" "PATH" "${PATH}" >> ${HOME}/.bashrc
+```
+
+There may be some non-portable flags in use which will hinder installation on other platforms, but I'm in the process of testing on
+Alpine Linux and Ubuntu to ensure that where possible, only portable interfaces/flags are used or are appropriately fenced off behind 
+an `#ifdef`. Please let me know if any errors are encountered so they can be addressed as swiftly as possible. If it's a problem encountered
+when using the `nombre(1)` utility, please include the runtime traces from using the `-D` flag. 
 
 ## Interface
 The `nombre(1)` interface is a semi-natural language command line primarily driven by the use of subcommands,

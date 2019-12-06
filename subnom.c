@@ -172,6 +172,11 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 
 	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
 		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+	} else {
+		/* XXX: This should be handled elsewhere */
+		if (cmdbuf->command == 0) {
+			cmdbuf->command = lookup;
+		}
 	}
 	/* 
 	 * Determine how to best proceed with processing the statement based on
