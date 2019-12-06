@@ -46,6 +46,9 @@ export PATH="${PATH}:${HOME}/bin"
 printf "export %s=%s\n" "PATH" "${PATH}" >> ${HOME}/.bashrc
 ```
 
+Once you've set those variables as desired/necessary, simply run `make install` and after building `nombre(1)`, it will bootstrap the database.
+If you'd rather build a copy more suitable for debugging, you can run `make build` instead and the database bootstrap step will not be done automatically. 
+
 There may be some non-portable flags in use which will hinder installation on other platforms, but I'm in the process of testing on
 Alpine Linux and Ubuntu to ensure that where possible, only portable interfaces/flags are used or are appropriately fenced off behind 
 an `#ifdef`. Please let me know if any errors are encountered so they can be addressed as swiftly as possible. If it's a problem encountered
