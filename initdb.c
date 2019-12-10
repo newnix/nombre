@@ -176,7 +176,8 @@ nom_dirtest(const char * dbname, const size_t dbnamelen) {
 	/* Trace back to the directory separator */
 	while (dirsep --> 0) {
 		if ((dbname[dirsep] ^ DIRSEP) == 0) {
-			strlcpy(dbdir, dbname, (size_t)(dirsep + 1)); /* Add 1 to copy length, attempt to avoid truncation */
+			memccpy(dbdir, dbname, 0, (size_t)(dirsep + 1)); /* dbdir should now have the directory info from the specified path */
+			if (dbg) { NOMDBG("Captured %s as the nombre DB directory\n", dbdir); }
 			userid = getuid();
 			/* Group info tests could be improved, currently just using the primary GID */
 			grpid = getgid();

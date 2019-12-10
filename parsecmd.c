@@ -36,9 +36,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined (__linux__)
-#include <bsd/string.h>
-#endif
 #include <unistd.h>
 
 #ifndef NOMBRE_PARSECMD_H
@@ -138,16 +135,17 @@ nombre_lookup(nomcmd * restrict cmdbuf, const char ** restrict args) {
 
 	if (isgrp(cmdbuf)) {
 		/* Use group logic */
-		strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
-		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+		memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
+		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
 		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
 				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
 	} else {
 		/* Expected to be normal path */
-		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
 		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\');",
 				cmdbuf->defdata[NOMBRE_DBTERM]);
 	}
+	/* Assume we wrote what was intended and clear the return code. */
 	retc = (retc > 0) ? retc ^ retc : retc;
 	if (dbg) {
 		NOMDBG("Returning %d to caller\n", retc);
@@ -159,12 +157,12 @@ int
 nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	int retc;
 	char defstr[DEFLEN];
-	retc = 0;
+	retc = 1; /* Start with retc nonzero to enter loops properly */
 
 	if (dbg) {
 		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)*args);
 	}
-	if ((cmdbuf == NULL) || (args == NULL)) {
+	if ((cmdbuf == NULL) || (*args == NULL)) {
 		NOMERR("%s\n", "Invalid Arguments!");
 		retc = BADARGS;
 	} else {
@@ -173,23 +171,28 @@ nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	}
 
 	if (isgrp(cmdbuf)) {
-		retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
+		memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
 		upcase(cmdbuf->defdata[NOMBRE_DBCATG]);
-		retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
-		upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
-		/* Flatten the rest of the argument vector */
-		for (register int written = 0; *args != NULL && retc > 0; args++) {
-			retc = snprintf(&defstr[written], (size_t)(DEFLEN - written), (written > 0) ? " %s" : "%s", *args);
-			written += retc;
+		/* Only if the new value of *args is non-null! */
+		if (*args != NULL) {
+			memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
+			upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
+			/* Flatten the rest of the argument vector */
+			for (register int written = 0; *args != NULL && retc > 0; args++) {
+				retc = snprintf(&defstr[written], (size_t)(DEFLEN - written), (written > 0) ? " %s" : "%s", *args);
+				written += retc;
+			}
+			if (dbg) {
+				NOMDBG("Flattened arguments to \"%s\"\n", defstr);
+			}
+			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, 
+					"INSERT INTO definitions VALUES (\'%s\', \'%s\', (SELECT id FROM categories WHERE name LIKE(\'%s\')));",
+					cmdbuf->defdata[NOMBRE_DBTERM], defstr, cmdbuf->defdata[NOMBRE_DBCATG]);
 		}
-		if (dbg) {
-			NOMDBG("Flattened arguments to \"%s\"\n", defstr);
-		}
-		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, 
-				"INSERT INTO definitions VALUES (\'%s\', \'%s\', (SELECT id FROM categories WHERE name LIKE(\'%s\')));",
-				cmdbuf->defdata[NOMBRE_DBTERM], defstr, cmdbuf->defdata[NOMBRE_DBCATG]);
+		retc = BADARGS;
+		NOMERR("Invalid number of arguments for %s!\n", __func__);
 	} else {
-		retc = (int)strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); args++;
+		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
 		upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
 		for (register int written = 0; *args != NULL && retc > 0; args++) {
 			if (dbg) {
@@ -252,12 +255,12 @@ nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args) {
 
 	if (isgrp(cmdbuf)) {
 		/* Copy the group info if it exists */
-		strlcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, (size_t)DEFLEN); args++;
-		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN); /* Should now be out of arguments */
+		memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
+		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); /* Should now be out of arguments */
 		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT term, meaning FROM definitions WHERE meaning LIKE(\'%%%s%%\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
 				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
 	} else {
-		strlcpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, (size_t)DEFLEN);
+		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN);
 		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT term, meaning FROM definitions WHERE meaning LIKE(\'%%%s%%\');",
 				cmdbuf->defdata[NOMBRE_DBTERM]);
 	}
@@ -293,11 +296,11 @@ nombre_dbdump(nomcmd * restrict cmdbuf, const char ** restrict args) {
 				retc = snprintf(cmdbuf->gensql, (size_t)DEFLEN, "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d"
 						" ON c.id = d.category WHERE d.category = (SELECT id FROM categories WHERE name LIKE(\'%s\')) ORDER BY 2 DESC;", *args);
 			} else {
-				retc = (int)strlcat(cmdbuf->gensql, "SELECT  id, short, nlong FROM category_verbose ORDER BY 1 DESC;", (size_t)DEFLEN);
+				retc = snprintf(cmdbuf->gensql, (size_t)DEFLEN, "%s", "SELECT  id, short, nlong FROM category_verbose ORDER BY 1 DESC;");
 			}
 		} else {
 			/* Precision loss is acceptable as the given write limit is well under INT_MAX */
-			retc = (int)strlcat(cmdbuf->gensql, "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d ON c.id = d.category ORDER BY 1,2 DESC;", (size_t)DEFLEN);
+			retc = snprintf(cmdbuf->gensql, (size_t)DEFLEN, "%s", "SELECT c.name, d.term, d.meaning FROM categories AS c JOIN definitions AS d ON c.id = d.category ORDER BY 1,2 DESC;");
 		}
 		/* Clear the counter values from string operations prior to returning */
 		retc = (retc > NOM_OK) ? retc ^ retc : retc;

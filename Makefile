@@ -43,7 +43,7 @@ DIRMODE = 01750
 BINMODE = 0755
 
 ## Usable make targets
-TARGETS = "debug install uninstall check run test"
+TARGETS = "build install uninstall check run test build-help"
 DVCS_TARGETS = "commit push pull status"
 CTRL_TARGETS = "config help clean purge"
 
@@ -52,7 +52,7 @@ HELP = -h
 
 ## Build the object files
 .c.o:
-	$(CC) ${CFLAGS} -c $< -o ${<:.c=.o}
+	@$(CC) ${CFLAGS} -c $< -o ${<:.c=.o}
 
 nombre.o: ${HEADERS}
 initdb.o: nombre.h initdb.h
@@ -61,12 +61,23 @@ subnom.o: nombre.h initdb.h parsecmd.h subnom.h
 dbverify.o: nombre.h dbverify.h
 
 $(PROJECT): $(OBJ)
-	$(CC) -o $@ $? -fuse-ld=${LD} ${LDFLAGS}
+	@$(CC) -o $@ $? -fuse-ld=${LD} ${LDFLAGS}
 
 help:
-	@echo "Objects: $(OBJ)"
+	@printf "Build options for %s\n" "${PROJECT}"
+	@printf "Valid targets: %s\n" ${TARGETS}
+	@printf "--------------------------------------------------\n"
+	@printf "\tbuild:\t\tCompile and install a binary that may still have debug symbols\n"
+	@printf "\tinstall:\tCompile and install a binary with all symbols stripped out, then bootstrap the database\n"
+	@printf "\tuninstall:\tDelete the currently installed version of %s(1)\n" "${PROJECT}"
+	@printf "\tcheck:\t\tRun clang-tidy-devel with all checks enabled against the source code\n"
+	@printf "\trun:\t\tRun the installed version of %s with default arguments\n" "${PROJECT}"
+	@printf "\ttest:\t\tRun available tests against %s(1)\n" "${PROJECT}"
+	@printf "\tbuild-help;\tDescribe the current build options and how to modify them\n\n"
+	
+build-help:
 	@printf "Build system configuration for %s:\n" ${PROJECT}
-	@printf "\tValid targets: %s\n" ${TARGETS}
+	@printf "\tRegular targets: %s\n" ${TARGETS}
 	@printf "\tDVCS targets: %s\n" ${DVCS_TARGETS}
 	@printf "\tControl targets: %s\n" ${CTRL_TARGETS}
 	@printf "\nCompilation settings:\n"
@@ -84,29 +95,28 @@ help:
 check: ${SRCS}
 	@clang-tidy-devel -checks=* $?
 
-build: mkdest nombre
+## Build and install should clean beforehand until I can verify the correct process for better incremental builds
+build: mkdest clean nombre
 	@echo "[${@}]: Working in ${PWD}"
-	install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
+	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 
-install: mkdest nombre
+install: mkdest clean nombre
 	@echo "[${@}]: Working in ${PWD}"
 	@strip -s ${TARGET}
 	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 	@echo "Hit ^C in the next 5 seconds to prevent bootstrapping the database!"
 	@sleep 5
-	@${PREFIX}${DESTDIR}/${TARGET} -Ii nombre.sql
+	@${PREFIX}${DESTDIR}/${TARGET} -Ii "${PWD}nombre.sql"
 
 ## Create the installation directory
 mkdest: dirs
 	@echo "[${@}]: Ensuring ${PREFIX}${DESTDIR} exists"
 	@mkdir -pm ${DIRMODE} ${PREFIX}${DESTDIR}
 
-## Create an intermediate build location,
-## including the test directory
 dirs:
-	@echo "[${@}]: Working in ${PWD}"
+	@echo "[${@}]: Creating test directory"
 	@mkdir -pm 1750 ${PWD}/test
 
 push:
@@ -116,7 +126,6 @@ commit:
 	@(cd ${PWD} && ${DVCS} commit)
 
 status:
-	@echo "[${@}]: In ${PWD}"
 	@(cd ${PWD} && ${DVCS} status)
 
 diff:
@@ -129,11 +138,15 @@ uninstall: ;
 	@echo "[$@]: Deleting ${PREFIX}${DESTDIR}/${PROJECT}"
 	@rm -f ${PREFIX}${DESTDIR}/${PROJECT}
 
-purge:
-	@echo "This target is not yet ready"
+## Only run when you're certain you want to kill everything
+purge: uninstall clean
+	@echo "[${@}]: Deleting all known ${PROJECT} data..."
+	@echo "[${@}]: WARNING: THIS WILL DESTROY ALL DATA IN ${PWD}!"
+	@sleep 10
+	@rm -f ${HOME}/.local/nombre.db
+	@(cd ../ && echo deleting "${PWD}"; rm -rf ${PWD})
 
 clean:
 	@echo "[${@}]: Cleaning up build objects..."
-	@rm -vf ${PWD}/obj/*
-	@rm -vf ${PWD}/bin/*
+	@rm -f ${PWD}/$(OBJ)
 	@rm -f ${PWD}/${PROJECT}

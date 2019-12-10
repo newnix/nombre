@@ -11,8 +11,8 @@ guarantee a timetable for support.
 
 Build Dependencies:
 
-	* A C99 compliant compiler and linker (CC and Clang/LLVM are fine)
-	* BSD Make (often called `bmake` in Linux distro repos
+	* A C99 compliant compiler and linker (GCC and Clang/LLVM are fine)
+	* POSIX compliant Make (both GNU Make and BSD Make should be fine)
 	* Standard C header files (Consider installing the libc-devel packages on Linux distros)
 	* SQLite3 header files (Possibly a separate -devel package)
 	* The SQLite3 library (Probably already installed)

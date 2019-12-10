@@ -112,15 +112,15 @@ main(int ac, char **av) {
 				flags |= HELPME;
 				break;
 			case 'd':
-				strlcpy(cmd.filedata[NOMBRE_DBFILE], optarg, (size_t)PATHMAX);
+				memccpy(cmd.filedata[NOMBRE_DBFILE], optarg, 0, (size_t)PATHMAX);
 				break;
 			case 'i':
 				flags |= INTSQL;
-				strlcpy(cmd.filedata[NOMBRE_INITSQL], optarg, (size_t)PATHMAX);
+				memccpy(cmd.filedata[NOMBRE_INITSQL], optarg, 0, (size_t)PATHMAX);
 				break;
 			case 'f':
 				flags |= DBEXCH;
-				strlcpy(cmd.filedata[NOMBRE_IOFILE], optarg, (size_t)PATHMAX);
+				memccpy(cmd.filedata[NOMBRE_IOFILE], optarg, 0, (size_t)PATHMAX);
 				break;
 			case 'v':
 				flags |= DBTEST;

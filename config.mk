@@ -24,3 +24,8 @@ include clang-opts.mk
 
 ## Uncomment for "failsafe" settings
 #include failsafe.mk
+
+## These macros will be passed to the compiler, they should only be used if for some reason
+## the build process complains of certain macros or functions not being defined, in which case
+## these can be used to force enable/disable certain features.
+MACRO_OVERRIDES = 
