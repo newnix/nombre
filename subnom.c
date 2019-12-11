@@ -139,6 +139,7 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		 * Push the pointer back to the first argument in the string
 		 */
 		default:
+			/* XXX: It should not be possible to reach this code */
 			retc = nombre_lookup(cmdbuf, --argstr);
 			break;
 	}
@@ -160,7 +161,7 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 	sqltail = NULL; stmt = NULL;
 
 	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p, genlen = %d, cmdbuf->gensql = %p\n", (void *)cmdbuf, genlen, (void *)cmdbuf->gensql);
+		NOMDBG("Entering with cmdbuf->command = %d, genlen = %d, cmdbuf->gensql = %p\n", cmdbuf->command, genlen, (void *)cmdbuf->gensql);
 	}
 	if (cmdbuf == NULL) {
 		NOMERR("%s", "Given invalid input!\n");
@@ -172,11 +173,6 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 
 	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
 		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
-	} else {
-		/* XXX: This should be handled elsewhere */
-		if (cmdbuf->command == 0) {
-			cmdbuf->command = lookup;
-		}
 	}
 	/* 
 	 * Determine how to best proceed with processing the statement based on

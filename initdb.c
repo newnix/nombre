@@ -198,10 +198,10 @@ nom_dirtest(const char * dbname, const size_t dbnamelen) {
 			NOMDBG("Directory info: %s: %u, %s:%o\n", "UID", dbdirstat.st_uid, "Mode", dbdirstat.st_mode);
 		}
 		/* Run some tests againt the returned directory structure */
-		if ((dbdirstat.st_uid == userid) && (dbdirstat.st_mode == UMODE)) {
+		if ((dbdirstat.st_uid == userid) && ((dbdirstat.st_mode & UMODE) == UMODE)) {
 			/* Probably fine, but validate permissions anyway */
 			fstest = UDIR_OK;
-		} else if ((dbdirstat.st_gid == grpid) && (dbdirstat.st_mode == GMODE)) { 
+		} else if ((dbdirstat.st_gid == grpid) && ((dbdirstat.st_mode & GMODE) == GMODE)) { 
 			/* Check for usable group permissions */
 			fstest = GDIR_OK;
 		}

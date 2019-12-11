@@ -48,10 +48,9 @@
 #define UMODOK 0x16
 #define GMODOK 0x32
 /* Seems that the stat struct holds an extra field in the mode member */
-#define ISDIR  0x4000
-#define UMODE  (S_IRWXU|ISDIR)
+#define UMODE  (S_IRWXU|S_IFDIR)
 /* OK to foll on group permissions if we have RWX */
-#define GMODE  (S_IRWXG|ISDIR)
+#define GMODE  (S_IRWXG|S_IFDIR)
 /* Two possible success conditions */
 #define UDIR_OK (UID_OK|URW_OK)
 #define GDIR_OK (GID_OK|GRW_OK)

@@ -87,7 +87,9 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 	 * after all single-value commands are exhausted.
 	 */
 	for (register int_fast8_t i = 0; ((i < (CMDCOUNT - 1)) && (retc != 0)) ; i++) {
-		retc = memcmp(arg, cmd[argsz][i], arglen);
+		if ((retc = memcmp(arg, cmd[argsz][i], arglen)) == 0) {
+			cmdbuf->command |= (0x01 << i);
+		}
 		if (dbg) { 
 			NOMDBG("i = %d, retc = %d, cmd[%lu][%d] = %s, cmdbuf->command = %u, (0x01 << %d) = %X (%u)\n", 
 					i, retc, argsz, i, cmd[argsz][i], cmdbuf->command, i, (0x01 << i), (0x01 << i)); 
@@ -96,13 +98,15 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 		 * If we get the "new" subcommand without the group subcommand,
 		 * set to lookup instead.
 		 */
-		if (i == new && (! isgrp(cmdbuf))) {
+		if (cmdbuf->command == new && (! isgrp(cmdbuf))) {
+			NOMINF("Invalid subcommand: \"new\" must be preceeded by \"%s\"! Using default behaviour...\n", cmd[argsz][CMDCOUNT-1]); 
 			cmdbuf->command = lookup;
-			retc = NOM_OK; /* XXX: May need a better return status here to indicate overridden bad value */
+			retc = NOM_INVALID;
 			break; /* Force exiting the loop early */
-		}
-		if (retc == 0) {
-			cmdbuf->command |= (0x01 << i);
+		} else { 
+			if (cmdbuf->command != unknown && retc == 0) {
+				break;
+			}
 		}
 	}
 	/* Explicitly check for the group subcommand modifier */
@@ -113,6 +117,8 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 		cmdbuf->command |= grpcmd;
 		retc = grpcmd;
 	}
+	/* If the command is still unset at this time, force it to "lookup" */
+	cmdbuf->command = (cmdbuf->command == unknown) ? lookup : cmdbuf->command;
 
 	if (dbg) {
 		NOMDBG("Returning %d to caller with cmdbuf->command = %d\n", retc, cmdbuf->command);
