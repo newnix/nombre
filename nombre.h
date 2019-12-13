@@ -59,6 +59,7 @@
 #define NOM_USECWD -2 
 #define NOM_FIO_FAIL -3
 #define NOM_INVALID -4
+#define NOM_INCOMPLETE -32
 
 /* Simple not implemented message */
 #define NOTIMP(a) fprintf(stderr,"-%c is not yet implemented!\n",a)

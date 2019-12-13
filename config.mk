@@ -28,4 +28,11 @@ include clang-opts.mk
 ## These macros will be passed to the compiler, they should only be used if for some reason
 ## the build process complains of certain macros or functions not being defined, in which case
 ## these can be used to force enable/disable certain features.
+
 MACRO_OVERRIDES = 
+
+## Use these on Ubuntu, and likely most other Debian derived distros
+#MACRO_OVERRIDES += -D_DEFAULT_SOURCE
+
+## Use this on Alpine, and possibly on other musl libc systems
+#MACRO_OVERRIDES += -Wno-disabled-macro-expansion

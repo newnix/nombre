@@ -53,6 +53,13 @@
 #include "initdb.h"
 #endif
 
+/* Because apparently Linux doesn't have these options through GLIBC or musl */
+#if defined (__linux__)
+#define 0_EXLOCK 0
+#define MAP_NOSYNC 0
+#define MADV_NOSYNC 0
+#endif
+
 extern char *__progname;
 extern char **environ;
 extern bool dbg;
