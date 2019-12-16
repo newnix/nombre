@@ -129,27 +129,27 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 int
 nombre_lookup(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	int retc;
-	retc = 0;
+	retc = NOM_OK;
 
 	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)args);
+		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)*args);
 	}
-	if ((cmdbuf == NULL) || (args == NULL)) {
+	if ((cmdbuf == NULL) || (*args == NULL)) {
 		NOMERR("%s\n", "Invalid Arguments!");
 		retc = BADARGS;
-	}
-
-	if (isgrp(cmdbuf)) {
-		/* Use group logic */
-		memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
-		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
-		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
-				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
 	} else {
-		/* Expected to be normal path */
-		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
-		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\');",
-				cmdbuf->defdata[NOMBRE_DBTERM]);
+		if (isgrp(cmdbuf)) {
+			/* Use group logic */
+			memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
+			memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
+			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
+					cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
+		} else {
+			/* Expected to be normal path */
+			memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
+			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT meaning FROM definitions WHERE term LIKE(\'%s\');",
+					cmdbuf->defdata[NOMBRE_DBTERM]);
+		}
 	}
 	/* Assume we wrote what was intended and clear the return code. */
 	retc = (retc > 0) ? retc ^ retc : retc;
@@ -252,23 +252,23 @@ nombre_ksearch(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	retc = 0;
 
 	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (void *)args);
+		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (void *)*args);
 	}
-	if ((cmdbuf == NULL) || (args == NULL)) {
+	if ((cmdbuf == NULL) || (*args == NULL)) {
 		NOMERR("%s\n", "Invalid Arguments!");
 		retc = BADARGS;
-	}
-
-	if (isgrp(cmdbuf)) {
-		/* Copy the group info if it exists */
-		memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
-		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); /* Should now be out of arguments */
-		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT term, meaning FROM definitions WHERE meaning LIKE(\'%%%s%%\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
-				cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
 	} else {
-		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN);
-		retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT term, meaning FROM definitions WHERE meaning LIKE(\'%%%s%%\');",
-				cmdbuf->defdata[NOMBRE_DBTERM]);
+		if (isgrp(cmdbuf)) {
+			/* Copy the group info if it exists */
+			memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
+			memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); /* Should now be out of arguments */
+			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT term, meaning FROM definitions WHERE meaning LIKE(\'%%%s%%\') AND category=(SELECT id FROM categories WHERE name LIKE(\'%s\'));",
+					cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG]);
+		} else {
+			memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN);
+			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "SELECT term, meaning FROM definitions WHERE meaning LIKE(\'%%%s%%\');",
+					cmdbuf->defdata[NOMBRE_DBTERM]);
+		}
 	}
 	retc = (retc > 0) ? retc ^ retc : retc;
 	if (dbg) {
@@ -331,7 +331,7 @@ nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	if (dbg) {
 		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)*args);
 	}
-	if (cmdbuf == NULL || args == NULL) {
+	if (cmdbuf == NULL || *args == NULL) {
 		NOMERR("%s\n", "Invalid parameters!");
 		retc = BADARGS;
 	}

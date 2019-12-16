@@ -96,12 +96,12 @@ check: ${SRCS}
 	@clang-tidy-devel -checks=* $?
 
 ## Build and install should clean beforehand until I can verify the correct process for better incremental builds
-build: mkdest clean nombre
-	@echo "[${@}]: Working in ${PWD}"
-	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
+build: mkdest $(TARGET)
+	@echo "[${@}]: Building ${PROJECT} binary"
+	@install -m ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 
-install: mkdest clean nombre
+install: mkdest clean $(TARGET)
 	@echo "[${@}]: Working in ${PWD}"
 	@strip -s ${TARGET}
 	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}

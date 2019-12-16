@@ -58,6 +58,7 @@
 #define BADARGS -1 
 #define NOM_USECWD -2 
 #define NOM_FIO_FAIL -3
+/* Are these necessary? */
 #define NOM_INVALID -4
 #define NOM_INCOMPLETE -32
 
