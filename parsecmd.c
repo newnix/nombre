@@ -334,6 +334,18 @@ nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	if (cmdbuf == NULL || *args == NULL) {
 		NOMERR("%s\n", "Invalid parameters!");
 		retc = BADARGS;
+	} else {
+		/* Work on parsing out the new data */
+		memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
+		/* 
+		 * The group data should be dot delimited to reduce conflicts with other values,
+		 * so an example would look like:
+		 * nombre grp new SHORT.Sharthand
+		 * would create a new group called "SHORT" with the description of "Shorthand"
+		 */
+		if (*args == NULL) {
+			retc = NOM_INCOMPLETE;
+		}
 	}
 	if (dbg) {
 		NOMDBG("Returning %d to caller with gensql = %s\n", retc, cmdbuf->gensql);
