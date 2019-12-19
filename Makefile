@@ -31,8 +31,8 @@ LDFLAGS+= ${LIBS} ${LINKTO}
 CFLAGS += ${DBG}
 
 ## These variables control where the binary actually gets installed
-## The name of the binary
-TARGET = nombre
+## The name of the binary, if it needs to be changed.
+TARGET ?= ${PROJECT}
 ## The binary gets installed to ${PREFIX}${DESTDIR}
 PREFIX ?= "${HOME}"
 DESTDIR = /bin
@@ -103,7 +103,7 @@ build: mkdest $(TARGET)
 	@install -m ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
 	${PREFIX}${DESTDIR}/${TARGET} ${HELP}
 
-install: mkdest clean $(TARGET)
+install: mkdest $(TARGET)
 	@echo "[${@}]: Working in ${PWD}"
 	@strip -s ${TARGET}
 	@install -vm ${BINMODE} ${TARGET} ${PREFIX}${DESTDIR}
@@ -152,3 +152,13 @@ clean:
 	@echo "[${@}]: Cleaning up build objects..."
 	@rm -f ${PWD}/$(OBJ)
 	@rm -f ${PWD}/${PROJECT}
+
+## Run available tests and report status to the user.
+test: test-clean
+	@printf "Starting tests on %s:\n\n" "${>}"
+	@test/initialize.sh
+
+## Clean up the test directory
+test-clean:
+	:> test/log
+	:> test/results
