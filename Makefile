@@ -4,6 +4,8 @@ include config.mk
 
 ## This really shouldn't be overridden
 PROJECT = nombre
+## These targets should always be run
+.PHONY: help build-help check status commit push diff config clean
 ## Invoke with -DDVCS=git to use the git functions instead
 DVCS ?= fossil
 ## Set the suffixes to catch all .c and .o files
@@ -61,7 +63,7 @@ subnom.o: nombre.h initdb.h parsecmd.h subnom.h
 dbverify.o: nombre.h dbverify.h
 
 $(PROJECT): $(OBJ)
-	@$(CC) -o $@ $? -fuse-ld=${LD} ${LDFLAGS}
+	@$(CC) -o $@ $> -fuse-ld=${LD} ${LDFLAGS}
 
 help:
 	@printf "Build options for %s\n" "${PROJECT}"

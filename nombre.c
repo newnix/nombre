@@ -103,6 +103,11 @@ main(int ac, char **av) {
 	ch = retc = 0;
 	flags = 0;
 
+	/* Bail early if no arguments are given */
+	if (ac == 0) {
+		usage();
+		return(ac);
+	}
 	/* Initialize the SQLite3 library */
 	sqlite3_initialize();
 	opterr ^= opterr;
