@@ -154,11 +154,6 @@ clean:
 	@rm -f ${PWD}/${PROJECT}
 
 ## Run available tests and report status to the user.
-test: test-clean
+test: 
 	@printf "Starting tests on %s:\n\n" "${>}"
 	@test/initialize.sh
-
-## Clean up the test directory
-test-clean:
-	:> test/log
-	:> test/results
