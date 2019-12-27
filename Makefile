@@ -5,7 +5,7 @@ include config.mk
 ## This really shouldn't be overridden
 PROJECT = nombre
 ## These targets should always be run
-.PHONY: help build-help check status commit push diff config clean
+.PHONY: help build-help check status commit push diff config clean test
 ## Invoke with -DDVCS=git to use the git functions instead
 DVCS ?= fossil
 ## Set the suffixes to catch all .c and .o files
@@ -154,6 +154,6 @@ clean:
 	@rm -f ${PWD}/${PROJECT}
 
 ## Run available tests and report status to the user.
-test: 
+test: $(TARGET)
 	@printf "Starting tests on %s:\n\n" "${>}"
 	@test/initialize.sh
