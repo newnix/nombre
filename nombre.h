@@ -84,19 +84,20 @@ typedef enum subcom_t {
 	lookup = (0x01 << 0 ), /* Most likely command, look up given term */
 	define = (0x01 << 1 ), /* Add a definition */
 	search = (0x01 << 2 ), /* Perform a keyword search */
-	dumpdb = (0x01 << 3 ), /* Dump contents to stdout */
-	new    = (0x01 << 4 ), /* Create a new group/category (only valid as group subcommand modifier) */
-	import = (0x01 << 5 ), /* Import definitions from file */
-	export = (0x01 << 6 ), /* Export definitons to file */
-	addsrc = (0x01 << 7 ), /* Add an entry for the definition source */
-	update = (0x01 << 8 ), /* Update a definition */
-	vquery = (0x01 << 9 ), /* Lookup with sources */
+	delete = (0x01 << 3 ), /* Delete an entry from the database */
+	dumpdb = (0x01 << 4 ), /* Dump contents to stdout */
+	new    = (0x01 << 5 ), /* Create a new group/category (only valid as group subcommand modifier) */
+	import = (0x01 << 6 ), /* Import definitions from file */
+	export = (0x01 << 7 ), /* Export definitons to file */
+	addsrc = (0x01 << 8 ), /* Add an entry for the definition source */
+	update = (0x01 << 9 ), /* Update a definition */
+	vquery = (0x01 << 10), /* Lookup with sources */
 	/* XXX: Replace with more useful meaning */
-	catscn = (0x01 << 10), /* Dump the definitions for the given category to stdout */
-	grpcmd = (0x01 << 12)  /* Operating on a group */
+	catscn = (0x01 << 11), /* Dump the definitions for the given category to stdout */
+	grpcmd = (0x01 << 13)  /* Operating on a group */
 } subcom;
 
-#define CMDCOUNT 12
+#define CMDCOUNT 13
 
 /* 
  * Define data structure for command parsing 

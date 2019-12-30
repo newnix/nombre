@@ -116,6 +116,9 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		case (search):
 			retc = nombre_ksearch(cmdbuf, argstr);
 			break;
+		case (delete):
+			retc = nombre_delete(cmdbuf, argstr);
+			break;
 		case (new):
 			retc = nombre_newgrp(cmdbuf, argstr);
 			break;
@@ -204,6 +207,20 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 					fprintf(stdout,"Added definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
 				}
 				retc ^= retc;
+			}
+			break;
+		case (delete):
+			retc = sqlite3_step(stmt);
+			if (retc == SQLITE_DONE) {
+				sqlite3_finalize(stmt);
+				if ((cmdbuf->command & grpcmd) == grpcmd) {
+					fprintf(stdout, "This path is not yet built.\n");
+				} else {
+					fprintf(stdout, "Deleted \"definitions\" entry for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+				}
+				retc ^= retc;
+			} else {
+				NOMERR("%s", sqlite3_errstr(retc));
 			}
 			break;
 		case (dumpdb):

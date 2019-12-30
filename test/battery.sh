@@ -4,7 +4,7 @@ DBNAME="test/nombre.db"
 DBISQL="nombre.sql"
 LOGFILE="test/log"
 RESULTS="test/results"
-TESTS="prepare initialize add_term read_term"
+TESTS="prepare initialize add_term read_term delete_term"
 RET=0
 ADD_TERM="test"
 ADD_DEF="garbage test data"
@@ -17,11 +17,10 @@ initialize() {
 	if [ ${RET} -eq 0 ]
 	then
 		builtin echo "Pass"
-		return ${RET}
 	else
 		builtin echo "Fail"
-		return ${RET}
 	fi
+	return ${RET}
 }
 
 add_term() {
@@ -32,7 +31,6 @@ add_term() {
 	if [ ${RET} -eq 0 ]
 	then
 		builtin echo "Pass"
-		return ${RET}
 	else
 		builtin echo "Fail"
 		return ${RET}
@@ -49,19 +47,35 @@ read_term() {
 		if [ "${ADD_DEF}" = "${RES#${ADD_TERM}: }" ]
 		then
 			builtin echo "Pass"
-			return ${RET}
 		else
 			builtin echo "Reported success with invalid data!"
 		fi
 	else
 		builtin echo "Fail"
 	fi
+	return ${RET}
 }
 
+delete_term() {
+	## Verify term deletion works appropriately
+	builtin echo -n "Validating deletion code... "
+	RES=$(nombre -d "${DBNAME}" del "${ADD_TERM}" 2>&1 >> "${LOGFILE}")
+	if [ ${RET} -eq 0 ]
+	then
+		builtin echo "Pass"
+	else
+		builtin echo "Fail"
+	fi
+	return ${RET}
+}
+
+## This is mostly to ensure that there's a valid POSIX shell on the system
 prepare() {
+	builtin echo -n "Verifying working POSIX-y shell... "
 	: > ${LOGFILE}
 	: > ${RESULTS}
 	rm -f ${DBNAME}
+	if [ $? -eq 0 ]; then builtin echo "Pass"; else builtin echo "Fail"; fi
 	return 0
 }
 
@@ -80,8 +94,8 @@ showresults(){
 for t in ${TESTS}
 do
 	${t}
-	result=$(( 0 + $? ))
-	if [ ${result} -eq 0 ]
+	RET=$(( 0 + $? ))
+	if [ ${RET} -eq 0 ]
 	then
 		builtin echo "${t}: passed" >> "${RESULTS}"
 	else

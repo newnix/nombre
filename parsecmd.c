@@ -63,8 +63,8 @@ parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
 
 	/* Define a list of valid command strings */
 	const char *cmd[][CMDCOUNT] = { 
-		{ "def", "add", "key", "lst", "new", "imp", "exp", "src", "upd", "vqy", "cts", "grp" }, /* "Short" */
-		{ "define", "adddef", "keyword", "list", "new", "import", "export", "srcadd", "update", "vquery", "catscn", "grpcmd" } /* "Long" */
+		{ "def", "add", "key", "del", "lst", "new", "imp", "exp", "src", "upd", "vqy", "cts", "grp" }, /* "Short" */
+		{ "define", "adddef", "keyword", "delete", "list", "new", "import", "export", "srcadd", "update", "vquery", "catscn", "grpcmd" } /* "Long" */
 	};
 
 	if (dbg) {
@@ -314,6 +314,33 @@ nombre_dbdump(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	
 	if (dbg) {
 		NOMDBG("Returinng %d to caller with cmdbuf->gensql= %s\n", retc, cmdbuf->gensql);
+	}
+	return(retc);
+}
+
+/* 
+ * Delete the given term/group from the database based on the 
+ * presence of the group flag. This will require some sort of modification or 
+ * check against terms using the given group. Most likely just resetting them
+ * to "unknown".
+ */
+int
+nombre_delete(nomcmd * restrict cmdbuf, const char ** argstr) {
+	int retc;
+	retc = NOM_OK;
+	if (cmdbuf == NULL || *argstr == NULL) {
+		NOMERR("%s\n","Invalid arguments!");
+		retc = NOM_INVALID;
+		return(retc);
+	}
+	memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *argstr, 0, (size_t)DEFLEN); argstr++;
+	upcase(cmdbuf->defdata[NOMBRE_DBTERM]);
+	if (isgrp(cmdbuf)) {
+		/* TODO: Add group logic */
+	} else {
+		/* XXX: Will not handle the altdefs table in this state */
+		retc = snprintf(cmdbuf->gensql, (size_t)DEFLEN, "DELETE FROM definitions WHERE term=\'%s\';", cmdbuf->defdata[NOMBRE_DBTERM]);
+		retc = (retc > 0) ? retc ^ retc: retc; /* Set to 0 for assumed success */
 	}
 	return(retc);
 }

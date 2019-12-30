@@ -156,4 +156,4 @@ clean:
 ## Run available tests and report status to the user.
 test: $(TARGET)
 	@printf "Starting tests on %s:\n\n" "${>}"
-	@test/initialize.sh
+	@test/battery.sh
