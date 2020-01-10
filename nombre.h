@@ -114,6 +114,11 @@ typedef struct nombre_cmd_t {
 } nomcmd;
 
 /* 
+ * NOTE: Current struct size is ~3.152KiB, assuming a 48-bit pointer, but that's probably wrong,
+ * this size needs to remain under 4k to ensure that it's possible to fit in a single page.
+ */
+
+/* 
  * Add macros to help with array indexing
  */
 #define NOMBRE_DBFILE 0x00

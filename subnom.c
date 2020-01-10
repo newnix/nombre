@@ -207,6 +207,19 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 					fprintf(stdout,"Added definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
 				}
 				retc ^= retc;
+			} else if (retc == SQLITE_CONSTRAINT) {
+				/* Definition already exists, reset VM and run altdef function */
+				sqlite3_reset(stmt); sqlite3_finalize(stmt);
+				retc = nombre_altdef(cmdbuf);
+				if (retc != 0) {
+					break;
+				}
+				retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, -1, &stmt, &sqltail);
+				retc = sqlite3_step(stmt);
+				if (retc == SQLITE_DONE) {
+					fprintf(stdout, "Added new definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+					retc ^= retc;
+				}
 			}
 			break;
 		case (delete):

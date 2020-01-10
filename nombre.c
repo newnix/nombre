@@ -176,6 +176,10 @@ usage(void) {
 			"\t(def)ine: Look up a definition\n"
 			"\t(add)def: Add a new definition to the database\n"
 			"\t(key)word: Perform a keyword search on saved entries\n"
+			"\t(del)ete: Delete a term or group from the database\n"
+			"\tlist (lst): List the contents of the database\n"
+			"Groups:\n"
+			"\t(grp)cmd: Modify the command to operate on groups instead of just terms\n"
 			,__progname, "~", NOMBRE_DB_DIRECT, NOMBRE_DB_NAME);
 
 	return; /* Gracefully return to caller */
