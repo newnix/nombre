@@ -54,7 +54,7 @@ HELP = -h
 
 ## Build the object files
 .c.o:
-	@$(CC) ${CFLAGS} -c $< -o ${<:.c=.o}
+	@$(CC) ${CFLAGS} ${DBG} -c $< -o ${<:.c=.o}
 
 nombre.o: ${HEADERS}
 initdb.o: nombre.h initdb.h

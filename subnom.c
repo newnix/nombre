@@ -210,12 +210,15 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 			} else if (retc == SQLITE_CONSTRAINT) {
 				/* Definition already exists, reset VM and run altdef function */
 				sqlite3_reset(stmt); sqlite3_finalize(stmt);
+				sqltail = NULL; stmt = NULL;
 				retc = nombre_altdef(cmdbuf);
 				if (retc != 0) {
+					NOMERR("Error creating altdef for %s: returned: %d\n", cmdbuf->defdata[NOMBRE_DBTERM], retc);
 					break;
 				}
-				retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, -1, &stmt, &sqltail);
+				retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, retc, &stmt, &sqltail);
 				retc = sqlite3_step(stmt);
+				if (retc == SQLITE_MISUSE) { NOMERR("%s","You dun fucked up in the SQL reset\n"); }
 				if (retc == SQLITE_DONE) {
 					fprintf(stdout, "Added new definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
 					retc ^= retc;

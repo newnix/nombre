@@ -391,7 +391,7 @@ nombre_altdef(nomcmd * restrict cmdbuf) {
 	retc = 0;
 
 	if (dbg) {
-		NOMDBG("Entering with cmbduf = %p", (void *)cmdbuf);
+		NOMDBG("Entering with cmbduf = %p\n", (void *)cmdbuf);
 	}
 
 	/* This should not be possible! */
@@ -402,17 +402,26 @@ nombre_altdef(nomcmd * restrict cmdbuf) {
 		/* Obviously, we're here due to a constraint issue, so we can optimize out a few other checks */
 		if (extract_defstring(cmdbuf->gensql, defstr) < 0) {
 			NOMERR("%s","Something went wrong extracting the definition!\n");
+			return(NOM_FAIL);
+		} else {
+			if (dbg) {
+				NOMDBG("Deleting invalid SQL at %p\n", (void *)cmdbuf->gensql);
+			}
+			memset(cmdbuf->gensql, 0, (size_t)PATHMAX);
 		}
 		if (isgrp(cmdbuf)) {
 			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "INSERT INTO altdefs VALUES (\'%s\',"
-						 "(SELECT (SELECT MAX(defno) FROM altdefs WHERE term ilike \'%s\' + 1) IS NOT NULL OR 1),"
+						 "(SELECT (SELECT MAX(defno) FROM altdefs WHERE term like \'%s\' + 1) IS NOT NULL OR 1),"
 						 "\'%s\', (SELECT id FROM categories WHERE name ilike \'%s\');",
 						 cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG], defstr);
 		} else {
 			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "INSERT INTO altdefs VALUES (\'%s\',"
-					"(SELECT (SELECT MAX(defno) FROM altdefs WHERE term ilike \'%s\' + 1) IS NOT NULL OR 1),"
+					"(SELECT (SELECT MAX(defno) FROM altdefs WHERE term like \'%s\' + 1) IS NOT NULL OR 1),"
 					"\'%s\', -1);", cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBTERM], defstr);
 		}
+	}
+	if (dbg) {
+		NOMDBG("Returning %d to caller with regenerated SQL: %s\n", retc, cmdbuf->gensql);
 	}
 	retc = (retc > 0) ? retc ^ retc : retc;
 	return(retc);
@@ -425,6 +434,7 @@ static inline int
 extract_defstring(const char * restrict sql, char * restrict defstr) {
 	register char *i, *j, *defstart;
 	register int_fast8_t retc;
+	/* XXX: I don't remember why I allocated j, so this will need to be refactored a bit later */
 	i = NULL; j = NULL; defstart = NULL;
 	retc = 0;
 
@@ -434,24 +444,26 @@ extract_defstring(const char * restrict sql, char * restrict defstr) {
 	/* This should not be possible as both are arrays with static allocation */
 	if (sql == NULL || defstr == NULL) {
 		NOMERR("%s","This should not be possible, passed invalid arguments!");
-		retc = NOM_INVALID;
+		return(NOM_INVALID);
+	}
+	for (i = (char *)&sql[33], defstart = defstr; *i != 0; i++) {
+		if (*i == ',') {
+			j = i+2; /* Should be the start of the definition string */
+			i = j;
+		} else if (j != NULL) {
+			if (*i == 0x27) { break; } /* Exit loop after hitting the next apostrophe */
+			*defstr = *i; defstr++;
+			retc++; /* Keep count of how many bytes have been copied */
+		}
+	}
+	*defstr = 0; /* Ensure NUL termination */
+	defstr = defstart;
+	if (retc > 0 && dbg) {
+		/* Success, hopefully */
+		NOMDBG("Copied %d characters: %s\n", retc, defstart);
 	} else {
-		for (i = (char *)&sql[32], defstart = defstr; *i != 0; i++) {
-			if (*i == ',') {
-				j = i+2; /* Should be the start of the definition string */
-			} else if (j != NULL && (*i != 0x27)) {
-				*defstr = *i; defstr++;
-				retc++; /* Keep count of how many bytes have been copied */
-			}
-		}
-		defstr = defstart;
-		if (retc > 0 && dbg) {
-			/* Success, hopefully */
-			NOMDBG("Copied %d characters: %s\n", retc, defstart);
-		} else {
-			NOMINF("Extracted definition as: %s\n", defstr);
-			retc ^= retc;
-		}
+		NOMINF("Extracted definition as: %s\n", defstr);
+		retc ^= retc;
 	}
 
 	return(retc);
