@@ -216,11 +216,12 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 					NOMERR("Error creating altdef for %s: returned: %d\n", cmdbuf->defdata[NOMBRE_DBTERM], retc);
 					break;
 				}
-				retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, retc, &stmt, &sqltail);
+				retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, -1, &stmt, &sqltail);
+				if (retc != SQLITE_OK) { NOMERR("%s %d\n", sqlite3_errstr(retc), retc); } /* Appears to solve a potential race condition */
 				retc = sqlite3_step(stmt);
 				if (retc == SQLITE_MISUSE) { NOMERR("%s","You dun fucked up in the SQL reset\n"); }
 				if (retc == SQLITE_DONE) {
-					fprintf(stdout, "Added new definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+					fprintf(stdout, "Added new alternative definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
 					retc ^= retc;
 				}
 			}

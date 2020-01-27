@@ -416,7 +416,7 @@ nombre_altdef(nomcmd * restrict cmdbuf) {
 						 cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBCATG], defstr);
 		} else {
 			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, "INSERT INTO altdefs VALUES (\'%s\',"
-					"(SELECT (SELECT MAX(defno) FROM altdefs WHERE term like \'%s\' + 1) IS NOT NULL OR 1),"
+					"(SELECT SELECT MAX(defno) FROM altdefs WHERE term like \'%s\') + 1 or 1) IS NOT NULL OR 1),"
 					"\'%s\', -1);", cmdbuf->defdata[NOMBRE_DBTERM], cmdbuf->defdata[NOMBRE_DBTERM], defstr);
 		}
 	}
