@@ -123,6 +123,7 @@ dirs:
 
 push:
 	@gitsync -r ${PROJECT} -n master
+	@$(DVCS) sync ssh://exile.digital:/code/${PROJECT}/${PROJECT}.fossil
 
 commit:
 	@(cd ${PWD} && ${DVCS} commit)
