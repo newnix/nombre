@@ -351,11 +351,17 @@ nombre_delete(nomcmd * restrict cmdbuf, const char ** argstr) {
  * the verbose name, and optionally the group description. 
  * If we only get the new group label, we'll add in some boilerplate data, but the 
  * id is always generated as "SELECT MAX(id)+1 FROM categories;" in a subquery.
+ * The "short" name will be limited to 5 characters, while the "long" name 
+ * and optional description are only limited by the size of the DEFLEN (512)
+ * this should allow for significantly larger values than most uses would need.
  */
 int
 nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
 	int retc;
+	char delim, *dptr;
 	retc = 0;
+	delim = '.';
+	dptr = NULL;
 	if (dbg) {
 		NOMDBG("Entering with cmdbuf = %p, args = %p\n", (void *)cmdbuf, (const void *)*args);
 	}
@@ -363,16 +369,36 @@ nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
 		NOMERR("%s\n", "Invalid parameters!");
 		retc = BADARGS;
 	} else {
-		/* Work on parsing out the new data */
-		memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, 0, (size_t)DEFLEN); args++;
 		/* 
+		 * Work on parsing out the new data
 		 * The group data should be dot delimited to reduce conflicts with other values,
 		 * so an example would look like:
 		 * nombre grp new SHORT.Sharthand
 		 * would create a new group called "SHORT" with the description of "Shorthand"
+		 * though it should also be possible in the future to allow the user to define their
+		 * field delimiter during invocation to allow greater customization.
 		 */
-		if (*args == NULL) {
+		dptr = memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, delim, (size_t)DEFLEN); 
+		if (dbg) {
+			NOMDBG("%p = %s\n", (void *)dptr, dptr);
+		}
+		/* 
+		 * This should get us the "short" name in defdata[NOMBRE_DBCATG] 
+		 * from there, we just need to check the length of the argument to verify a valid
+		 * short name and potentially additional information for a long name and description
+		 */
+		if (*(args + 1) == NULL && dptr == NULL) { /* End of input AND no delimiter was found */
 			retc = NOM_INCOMPLETE;
+			NOMERR("Captured %s, but expected more data!\n", cmdbuf->defdata[NOMBRE_DBCATG]);
+		} else if (*(args + 1) != NULL && dptr == NULL) { /* More input, but no delimiter found */
+			NOMDBG("Captured %s, but found no delimiter before next term (%s)\n",
+					cmdbuf->defdata[NOMBRE_DBCATG], *(args + 1));
+		} else if (*(args +1) != NULL && dptr != NULL) { /* More input, found delimiter */
+			NOMDBG("Captured %s, assumed long name is \"%s\", with description of %s\n",
+					cmdbuf->defdata[NOMBRE_DBCATG], (*args + strlen(cmdbuf->defdata[NOMBRE_DBCATG])), *(args + 1));
+		} else { /* End of input, delimiter found */
+			NOMDBG("Captured %s, assuming long name is \"%s\"\n",
+					cmdbuf->defdata[NOMBRE_DBCATG], (*args+strlen(cmdbuf->defdata[NOMBRE_DBCATG])));
 		}
 	}
 	if (dbg) {

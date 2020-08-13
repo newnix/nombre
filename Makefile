@@ -68,7 +68,7 @@ $(PROJECT): $(OBJ)
 help:
 	@printf "Build options for %s\n" "${PROJECT}"
 	@printf "Valid targets: %s\n" ${TARGETS}
-	@printf "--------------------------------------------------\n"
+	@printf -- "--------------------------------------------------\n"
 	@printf "\tbuild:\t\tCompile and install a binary that may still have debug symbols\n"
 	@printf "\tinstall:\tCompile and install a binary with all symbols stripped out, then bootstrap the database\n"
 	@printf "\tuninstall:\tDelete the currently installed version of %s(1)\n" "${PROJECT}"
