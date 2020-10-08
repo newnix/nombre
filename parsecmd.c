@@ -195,9 +195,10 @@ nombre_newdef(nomcmd * restrict cmdbuf, const char ** restrict args) {
 			retc = snprintf(cmdbuf->gensql, (size_t)PATHMAX, 
 					"INSERT INTO definitions VALUES (\'%s\', \'%s\', (SELECT id FROM categories WHERE name LIKE(\'%s\')));",
 					cmdbuf->defdata[NOMBRE_DBTERM], defstr, cmdbuf->defdata[NOMBRE_DBCATG]);
+		} else {
+			retc = BADARGS;
+			NOMERR("Invalid number of arguments for %s!\n", __func__);
 		}
-		retc = BADARGS;
-		NOMERR("Invalid number of arguments for %s!\n", __func__);
 	} else {
 		memccpy(cmdbuf->defdata[NOMBRE_DBTERM], *args, 0, (size_t)DEFLEN); args++;
 		upcase(cmdbuf->defdata[NOMBRE_DBTERM]);

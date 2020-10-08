@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef LINUX
+#if defined(__linux__)
 #include <bsd/string.h>
 #endif /* end LINUX */
 #include <unistd.h>

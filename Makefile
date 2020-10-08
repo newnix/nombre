@@ -63,7 +63,7 @@ subnom.o: nombre.h initdb.h parsecmd.h subnom.h
 dbverify.o: nombre.h dbverify.h
 
 $(PROJECT): $(OBJ)
-	@$(CC) -o $@ $> -fuse-ld=${LD} ${LDFLAGS}
+	@$(CC) -o $@ ${OBJ} -fuse-ld=${LD} ${LDFLAGS}
 
 help:
 	@printf "Build options for %s\n" "${PROJECT}"

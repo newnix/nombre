@@ -190,7 +190,12 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 			}
 			for (register uint_fast16_t i = 1; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
 				if (i > 1) {
-					fprintf(stdout,"  #%d: %s\n",  i, sqlite3_column_text(stmt,0));
+					/* Because the size here is apparently inconsistent across platforms */
+#if defined(__linux__)
+					fprintf(stdout,"  #%zu: %s\n",  i, sqlite3_column_text(stmt,0));
+#else
+					fprintf(stdout," #%u: %s\n", i, sqlite3_column_text(stmt,0));
+#endif
 				} else {
 					fprintf(stdout,"%s: %s\n", cmdbuf->defdata[NOMBRE_DBTERM], sqlite3_column_text(stmt,0));
 				}
