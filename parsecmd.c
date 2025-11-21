@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#define _BSD_SOURCE
 #include <string.h>
 #include <unistd.h>
 
@@ -57,10 +58,8 @@ static inline void upcase(char * restrict str);
 
 int
 parsecmd(nomcmd * restrict cmdbuf, const char * restrict arg) {
-	int retc;
-	size_t argsz, arglen;
-	retc = -1;
-	argsz = arglen = 0;
+	int retc = -1;
+	size_t argsz = 0, arglen = 0;
 
 	/* Define a list of valid command strings */
 	const char *cmd[][CMDCOUNT] = { 
@@ -355,12 +354,16 @@ nombre_delete(nomcmd * restrict cmdbuf, const char ** argstr) {
  * The "short" name will be limited to 5 characters, while the "long" name 
  * and optional description are only limited by the size of the DEFLEN (512)
  * this should allow for significantly larger values than most uses would need.
+ *
+ * XXX: Command buffer will eventually hold both the argument vector and the argument count
  */
 int
 nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
-	int retc;
+	int retc = 0;
 	char delim, *dptr;
-	retc = 0;
+  size_t shortlen = 0;
+  //size_t vlen = 0;
+
 	delim = '.';
 	dptr = NULL;
 	if (dbg) {
@@ -374,15 +377,25 @@ nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
 		 * Work on parsing out the new data
 		 * The group data should be dot delimited to reduce conflicts with other values,
 		 * so an example would look like:
-		 * nombre grp new SHORT.Sharthand
+		 * nombre grp new SHORT.Shorthand
 		 * would create a new group called "SHORT" with the description of "Shorthand"
 		 * though it should also be possible in the future to allow the user to define their
 		 * field delimiter during invocation to allow greater customization.
 		 */
-		dptr = memccpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, delim, (size_t)DEFLEN); 
+
+		dptr = memchr(*args, delim, (size_t)strnlen(*args, DEFLEN));
+
+    if (dptr != NULL) {
+      shortlen = (size_t)(dptr - *args);
+      dptr++; // Move beyond the delimiter
+      //vlen = (((size_t)strnlen(*args, DEFLEN)) - (shortlen + 1));
+      memcpy(cmdbuf->defdata[NOMBRE_DBCATG], *args, shortlen);
+    }
+
 		if (dbg) {
 			NOMDBG("%p = %s\n", (void *)dptr, dptr);
 		}
+
 		/* 
 		 * This should get us the "short" name in defdata[NOMBRE_DBCATG] 
 		 * from there, we just need to check the length of the argument to verify a valid
@@ -396,11 +409,24 @@ nombre_newgrp(nomcmd * restrict cmdbuf, const char ** restrict args) {
 					cmdbuf->defdata[NOMBRE_DBCATG], *(args + 1));
 		} else if (*(args +1) != NULL && dptr != NULL) { /* More input, found delimiter */
 			NOMDBG("Captured %s, assumed long name is \"%s\", with description of %s\n",
-					cmdbuf->defdata[NOMBRE_DBCATG], (*args + strlen(cmdbuf->defdata[NOMBRE_DBCATG])), *(args + 1));
+					cmdbuf->defdata[NOMBRE_DBCATG], (dptr), *(args + 1));
 		} else { /* End of input, delimiter found */
 			NOMDBG("Captured %s, assuming long name is \"%s\"\n",
 					cmdbuf->defdata[NOMBRE_DBCATG], (*args+strlen(cmdbuf->defdata[NOMBRE_DBCATG])));
 		}
+    /* 
+     * This should be redone with the binding interface rather than direct string interpolation,
+     * but due to the nature of the program, we don't really need to worry about SQL injection, as
+     * the user has full access to the database anyway
+     */
+    // XXX: This is kinda gross, but if it works, I can live with it until I refactor how the queries are handled
+    snprintf(cmdbuf->gensql, PATHMAX - 1, 
+        "INSERT INTO categories VALUES ((SELECT MAX(id) + 1 FROM categories), '%s');"
+        "INSERT INTO category_verbose VALUES ((SELECT MAX(id) + 1 FROM category_verbose), '%s', '%s');",
+        cmdbuf->defdata[NOMBRE_DBCATG], dptr,
+        *(args + 1) ? *(args + 1) : "No Description Provided"
+        );
+    cmdbuf->nqueries = 2;
 	}
 	if (dbg) {
 		NOMDBG("Returning %d to caller with gensql = %s\n", retc, cmdbuf->gensql);

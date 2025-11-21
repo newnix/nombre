@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#define _BSD_SOURCE
 #include <string.h>
 #include <unistd.h>
 /* Needed for mmap(2) */

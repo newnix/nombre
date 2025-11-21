@@ -12,7 +12,7 @@ DVCS ?= fossil
 .SUFFIXES = .c .o
 
 ## The standard used for the codebase
-STD = c99
+STD = c11
 
 ## List of *.c files to build
 SRCS = nombre.c initdb.c dbverify.c parsecmd.c subnom.c
@@ -54,7 +54,7 @@ HELP = -h
 
 ## Build the object files
 .c.o:
-	@$(CC) ${CFLAGS} ${DBG} -c $< -o ${<:.c=.o}
+	$(CC) ${CFLAGS} ${DBG} -c $< -o ${<:.c=.o}
 
 nombre.o: ${HEADERS}
 initdb.o: nombre.h initdb.h
@@ -63,7 +63,7 @@ subnom.o: nombre.h initdb.h parsecmd.h subnom.h
 dbverify.o: nombre.h dbverify.h
 
 $(PROJECT): $(OBJ)
-	@$(CC) -o $@ ${OBJ} -fuse-ld=${LD} ${LDFLAGS}
+	@$(CC) $(CFLAGS) -o $@ ${OBJ} -fuse-ld=${LD} ${LDFLAGS}
 
 help:
 	@printf "Build options for %s\n" "${PROJECT}"

@@ -142,7 +142,6 @@ buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
 		 * Push the pointer back to the first argument in the string
 		 */
 		default:
-			/* XXX: It should not be possible to reach this code */
 			retc = nombre_lookup(cmdbuf, --argstr);
 			break;
 	}
@@ -159,6 +158,7 @@ int
 runcmd(nomcmd * restrict cmdbuf, int genlen) {
 	int retc;
 	const char *sqltail; 
+  int tail_offset = 0;
 	sqlite3_stmt *stmt;
 	retc = 0;
 	sqltail = NULL; stmt = NULL;
@@ -176,6 +176,7 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 
 	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
 		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+    goto EXIT;
 	}
 	/* 
 	 * Determine how to best proceed with processing the statement based on
@@ -192,7 +193,7 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 				if (i > 1) {
 					/* Because the size here is apparently inconsistent across platforms */
 #if defined(__linux__)
-					fprintf(stdout,"  #%zu: %s\n",  i, sqlite3_column_text(stmt,0));
+					fprintf(stdout,"  #%u: %s\n",  i, sqlite3_column_text(stmt,0));
 #else
 					fprintf(stdout," #%u: %s\n", i, sqlite3_column_text(stmt,0));
 #endif
@@ -248,7 +249,7 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 		case (dumpdb):
 			fprintf(stdout,"Here's what I know:\n");
 			retc = sqlite3_step(stmt);
-			for (register uint_fast16_t i = 1; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
+			for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
 				fprintf(stdout,"  (%s/%s): %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1), sqlite3_column_text(stmt,2));
 			}
 			if (retc != SQLITE_DONE) {
@@ -271,14 +272,42 @@ runcmd(nomcmd * restrict cmdbuf, int genlen) {
 			}
 			sqlite3_finalize(stmt);
 			break;
+    case (new):
+      retc = sqlite3_step(stmt);
+      if (retc == SQLITE_DONE) {
+        cmdbuf->nqueries--;
+        while (cmdbuf->nqueries) {
+          sqlite3_finalize(stmt);
+          tail_offset = (int)(sqltail - cmdbuf->gensql);
+          if (sqlite3_prepare_v2(cmdbuf->dbcon, &(cmdbuf->gensql[tail_offset]), genlen - tail_offset, &stmt, &sqltail) == SQLITE_OK) {
+            NOMINF("Compiled %dB of '%.*s' into %p (%zu remaining queries)\n", genlen - tail_offset, genlen - tail_offset, &(cmdbuf->gensql[tail_offset]), (void *)stmt, cmdbuf->nqueries);
+            retc = sqlite3_step(stmt);
+            if (retc == SQLITE_DONE) {
+              cmdbuf->nqueries--;
+            } else {
+              goto NEW_GROUP_ERROR;
+            }
+          } else {
+            goto NEW_GROUP_ERROR;
+          }
+        }
+        fprintf(stdout, "Created new category: %s\n", cmdbuf->defdata[NOMBRE_DBCATG]);
+      } else {
+NEW_GROUP_ERROR:
+        NOMERR("Error creating category '%s': %s\n", cmdbuf->defdata[NOMBRE_DBCATG], sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+      }
+      retc = sqlite3_finalize(stmt);
+      break;
 		default:
 			/* Should not be reachable */
 			NOMERR("%s\n", "It should not be possible to reach this code!");
 			sqlite3_finalize(stmt);
 			return(retc);
 	}
+
+EXIT:
 	if (dbg) {
-		NOMDBG("Returning %d to caller\n", retc);
+		NOMDBG("Returning %d (%s) to caller\n", retc, sqlite3_errstr(retc));
 	}
 	return(retc);
 }

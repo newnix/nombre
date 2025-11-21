@@ -32,6 +32,7 @@
  */
 
 #define NOMBRE_H
+#include <stddef.h>
 #include <stdint.h>
 #include <sqlite3.h>
 
@@ -81,21 +82,21 @@ typedef uint8_t byte;
 
 /* Define the values of the subcommonds */
 typedef enum subcom_t {
-	unknown= 0, /* The starting point, doubles as late-stage error detection */
-	lookup = (0x01 << 0 ), /* Most likely command, look up given term */
-	define = (0x01 << 1 ), /* Add a definition */
-	search = (0x01 << 2 ), /* Perform a keyword search */
-	delete = (0x01 << 3 ), /* Delete an entry from the database */
-	dumpdb = (0x01 << 4 ), /* Dump contents to stdout */
-	new    = (0x01 << 5 ), /* Create a new group/category (only valid as group subcommand modifier) */
-	import = (0x01 << 6 ), /* Import definitions from file */
-	export = (0x01 << 7 ), /* Export definitons to file */
-	addsrc = (0x01 << 8 ), /* Add an entry for the definition source */
-	update = (0x01 << 9 ), /* Update a definition */
-	vquery = (0x01 << 10), /* Lookup with sources */
-	/* XXX: Replace with more useful meaning */
-	catscn = (0x01 << 11), /* Dump the definitions for the given category to stdout */
-	grpcmd = (0x01 << 13)  /* Operating on a group */
+  unknown= 0, /* The starting point, doubles as late-stage error detection */
+  lookup = (0x01 << 0 ), /* Most likely command, look up given term */
+  define = (0x01 << 1 ), /* Add a definition */
+  search = (0x01 << 2 ), /* Perform a keyword search */
+  delete = (0x01 << 3 ), /* Delete an entry from the database */
+  dumpdb = (0x01 << 4 ), /* Dump contents to stdout */
+  new    = (0x01 << 5 ), /* Create a new group/category (only valid as group subcommand modifier) */
+  import = (0x01 << 6 ), /* Import definitions from file */
+  export = (0x01 << 7 ), /* Export definitons to file */
+  addsrc = (0x01 << 8 ), /* Add an entry for the definition source */
+  update = (0x01 << 9 ), /* Update a definition */
+  vquery = (0x01 << 10), /* Lookup with sources */
+  /* XXX: Replace with more useful meaning */
+  catscn = (0x01 << 11), /* Dump the definitions for the given category to stdout */
+  grpcmd = (0x01 << 13)  /* Operating on a group */
 } subcom;
 
 #define CMDCOUNT 13
@@ -106,20 +107,18 @@ typedef enum subcom_t {
  * and then we can just pass the pointer around.
  */
 typedef struct nombre_cmd_t {
-	subcom command;
-	char filedata[3][PATHMAX]; /* File argument array holder */
-	/* assume we're using ASCII for now, full UTF-8 will be a stretch goal */
-	char defdata[2][DEFLEN]; /* Fold term/category into single 2D member */
-	char gensql[PATHMAX]; /* Generated SQL statement, capped at 1/4 PAGE_SIZE assuming 4k pages */
-	sqlite3 *dbcon; /* database connection */
+  subcom command;
+  char filedata[3][PATHMAX]; /* File argument array holder */
+  /* assume we're using ASCII for now, full UTF-8 will be a stretch goal */
+  char defdata[2][DEFLEN]; /* Fold term/category into single 2D member */
+  char gensql[PATHMAX]; /* Generated SQL statement, capped at 1/4 PAGE_SIZE assuming 4k pages */
+  char **args; /* Arguments provided */
+  size_t nargs; /* Argument count */
+  size_t nqueries; /* How many queries need to be run */
+  sqlite3 *dbcon; /* database connection */
 } nomcmd;
 
-/* 
- * NOTE: Current struct size is ~3.152KiB, assuming a 48-bit pointer, but that's probably wrong,
- * this size needs to remain under 4k to ensure that it's possible to fit in a single page.
- */
-
-/* 
+/*
  * Add macros to help with array indexing
  */
 #define NOMBRE_DBFILE 0x00

@@ -36,6 +36,7 @@
 /* Needed for uint8_t and such */
 #include <stdint.h>
 #include <stdlib.h>
+#define _BSD_SOURCE
 #include <string.h>
 #if defined(__linux__)
 #include <bsd/string.h>
