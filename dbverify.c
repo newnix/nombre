@@ -54,10 +54,10 @@ extern char **environ;
 extern bool dbg;
 
 int runtests(const nomcmd * cmdbuf) {
-	int retc;
-	retc = 0;
-	if (cmdbuf == NULL) {
-		NOMERR("%s", "Given NULL pointer, this should not be possible!\n");
-	}
-	return(retc);
+  int retc;
+  retc = 0;
+  if (cmdbuf == NULL) {
+    NOMERR("%s", "Given NULL pointer, this should not be possible!\n");
+  }
+  return(retc);
 }

@@ -63,215 +63,215 @@ extern bool dbg;
  */
 int
 buildcmd(nomcmd * restrict cmdbuf, const char ** restrict argstr) {
-	int retc;
-	uint32_t andmask;
-	retc = 0;
-	andmask = (unsigned int)(~grpcmd);
+  int retc;
+  uint32_t andmask;
+  retc = 0;
+  andmask = (unsigned int)(~grpcmd);
 
-	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p, argstr = %p, andmask = %X\n", (void *)cmdbuf, (const void *)argstr, andmask);
-	}
-	if ((cmdbuf == NULL) || (argstr == NULL)) {
-		retc = BADARGS;
-	} else {
-		/* Since we can't be sure we have a valid  database connection at this time, open one */
-		if (cmdbuf->dbcon == NULL) {
-			/* Likely use the functions in initdb.h to connect */
-			if ((retc = nom_getdbn(cmdbuf->filedata[NOMBRE_DBFILE])) == NOM_OK) {
-				retc = nom_dbconn(cmdbuf);
-			}
-		}
-	}
+  if (dbg) {
+    NOMDBG("Entering with cmdbuf = %p, argstr = %p, andmask = %X\n", (void *)cmdbuf, (const void *)argstr, andmask);
+  }
+  if ((cmdbuf == NULL) || (argstr == NULL)) {
+    retc = BADARGS;
+  } else {
+    /* Since we can't be sure we have a valid  database connection at this time, open one */
+    if (cmdbuf->dbcon == NULL) {
+      /* Likely use the functions in initdb.h to connect */
+      if ((retc = nom_getdbn(cmdbuf->filedata[NOMBRE_DBFILE])) == NOM_OK) {
+        retc = nom_dbconn(cmdbuf);
+      }
+    }
+  }
 
-	retc = parsecmd(cmdbuf, *argstr++);
-	if (cmdbuf->command == grpcmd) {
-		retc = parsecmd(cmdbuf, *argstr);
-		/* Only increment again if there's a good subcommand given */
-		if (retc == NOM_OK) {
-			argstr++;
-		}
-	}
-	/* 
-	 * Set our andmask to unset the 30th bit 
-	 * called functions will be able to check for this bit at entry
-	 */
+  retc = parsecmd(cmdbuf, *argstr++);
+  if (cmdbuf->command == grpcmd) {
+    retc = parsecmd(cmdbuf, *argstr);
+    /* Only increment again if there's a good subcommand given */
+    if (retc == NOM_OK) {
+      argstr++;
+    }
+  }
+  /* 
+   * Set our andmask to unset the 30th bit 
+   * called functions will be able to check for this bit at entry
+   */
 
-	if (dbg) {
-		NOMDBG("cmdbuf->command = %X (%u), andmask = %X (%u), (cmdbuf->command & andmask) = %X (%u)\n", 
-				cmdbuf->command, cmdbuf->command, andmask, andmask, (cmdbuf->command & andmask), (cmdbuf->command & andmask));
-	}
-	/* Now that we know we have a good database connection, determine what we need to do next */
-	switch (cmdbuf->command & andmask) {
-		case (lookup):
-			retc = nombre_lookup(cmdbuf, argstr);
-			break;
-		/*
-		 * This may be a bit deceptively named, but I'm sticking with it for now. 
-		 * It's meant to be interpreted in the sense of the user defining a term, not 
-		 * the user looking for a term's definition
-		 */
-		case (define):
-			retc = nombre_newdef(cmdbuf, argstr);
-			break;
-		case (search):
-			retc = nombre_ksearch(cmdbuf, argstr);
-			break;
-		case (delete):
-			retc = nombre_delete(cmdbuf, argstr);
-			break;
-		case (new):
-			retc = nombre_newgrp(cmdbuf, argstr);
-			break;
-		case (import):
-			break;
-		case (export):
-			break;
-		case (dumpdb):
-			retc = nombre_dbdump(cmdbuf, argstr);
-			break;
-		case (addsrc):
-			break;
-		case (update):
-			break;
-		case (vquery):
-			break;
-		case (catscn):
-			break;
-		/* 
-		 * Assume the user just didn't type "def" 
-		 * Push the pointer back to the first argument in the string
-		 */
-		default:
-			retc = nombre_lookup(cmdbuf, --argstr);
-			break;
-	}
-	if (retc == 0) {
-		retc = runcmd(cmdbuf, (int)strlen(cmdbuf->gensql));
-	}
-	if (dbg) {
-		NOMDBG("Returning %d to caller\n", retc);
-	}
-	return(retc);
+  if (dbg) {
+    NOMDBG("cmdbuf->command = %X (%u), andmask = %X (%u), (cmdbuf->command & andmask) = %X (%u)\n", 
+        cmdbuf->command, cmdbuf->command, andmask, andmask, (cmdbuf->command & andmask), (cmdbuf->command & andmask));
+  }
+  /* Now that we know we have a good database connection, determine what we need to do next */
+  switch (cmdbuf->command & andmask) {
+    case (lookup):
+      retc = nombre_lookup(cmdbuf, argstr);
+      break;
+    /*
+     * This may be a bit deceptively named, but I'm sticking with it for now. 
+     * It's meant to be interpreted in the sense of the user defining a term, not 
+     * the user looking for a term's definition
+     */
+    case (define):
+      retc = nombre_newdef(cmdbuf, argstr);
+      break;
+    case (search):
+      retc = nombre_ksearch(cmdbuf, argstr);
+      break;
+    case (delete):
+      retc = nombre_delete(cmdbuf, argstr);
+      break;
+    case (new):
+      retc = nombre_newgrp(cmdbuf, argstr);
+      break;
+    case (import):
+      break;
+    case (export):
+      break;
+    case (dumpdb):
+      retc = nombre_dbdump(cmdbuf, argstr);
+      break;
+    case (addsrc):
+      break;
+    case (update):
+      break;
+    case (vquery):
+      break;
+    case (catscn):
+      break;
+    /* 
+     * Assume the user just didn't type "def" 
+     * Push the pointer back to the first argument in the string
+     */
+    default:
+      retc = nombre_lookup(cmdbuf, --argstr);
+      break;
+  }
+  if (retc == 0) {
+    retc = runcmd(cmdbuf, (int)strlen(cmdbuf->gensql));
+  }
+  if (dbg) {
+    NOMDBG("Returning %d to caller\n", retc);
+  }
+  return(retc);
 }
 
 int
 runcmd(nomcmd * restrict cmdbuf, int genlen) {
-	int retc;
-	const char *sqltail; 
+  int retc;
+  const char *sqltail; 
   int tail_offset = 0;
-	sqlite3_stmt *stmt;
-	retc = 0;
-	sqltail = NULL; stmt = NULL;
+  sqlite3_stmt *stmt;
+  retc = 0;
+  sqltail = NULL; stmt = NULL;
 
-	if (dbg) {
-		NOMDBG("Entering with cmdbuf->command = %d, genlen = %d, cmdbuf->gensql = %p\n", cmdbuf->command, genlen, (void *)cmdbuf->gensql);
-	}
-	if (cmdbuf == NULL) {
-		NOMERR("%s", "Given invalid input!\n");
-		retc = BADARGS;
-	}
-	if (dbg) {
-		NOMDBG("Attempting to run generated SQL = %s\n", cmdbuf->gensql);
-	}
+  if (dbg) {
+    NOMDBG("Entering with cmdbuf->command = %d, genlen = %d, cmdbuf->gensql = %p\n", cmdbuf->command, genlen, (void *)cmdbuf->gensql);
+  }
+  if (cmdbuf == NULL) {
+    NOMERR("%s", "Given invalid input!\n");
+    retc = BADARGS;
+  }
+  if (dbg) {
+    NOMDBG("Attempting to run generated SQL = %s\n", cmdbuf->gensql);
+  }
 
-	if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
-		NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+  if ((retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, genlen, &stmt, &sqltail)) != SQLITE_OK) {
+    NOMERR("Error compiling SQL (%s)!\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
     goto EXIT;
-	}
-	/* 
-	 * Determine how to best proceed with processing the statement based on
-	 * the value of cmdbuf->command
-	 */
-	switch (cmdbuf->command & (unsigned int)(~grpcmd)) {
-		case (lookup):
-			retc = sqlite3_step(stmt);
-			if (retc == SQLITE_DONE) {
-				fprintf(stdout,"%s: unknown\n", cmdbuf->defdata[NOMBRE_DBTERM]);
-				return(retc ^= retc);
-			}
-			for (register uint_fast16_t i = 1; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
-				if (i > 1) {
-					/* Because the size here is apparently inconsistent across platforms */
+  }
+  /* 
+   * Determine how to best proceed with processing the statement based on
+   * the value of cmdbuf->command
+   */
+  switch (cmdbuf->command & (unsigned int)(~grpcmd)) {
+    case (lookup):
+      retc = sqlite3_step(stmt);
+      if (retc == SQLITE_DONE) {
+        fprintf(stdout,"%s: unknown\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+        return(retc ^= retc);
+      }
+      for (register uint_fast16_t i = 1; retc == SQLITE_ROW; i++, retc = sqlite3_step(stmt)) {
+        if (i > 1) {
+          /* Because the size here is apparently inconsistent across platforms */
 #if defined(__linux__)
-					fprintf(stdout,"  #%u: %s\n",  i, sqlite3_column_text(stmt,0));
+          fprintf(stdout,"  #%u: %s\n",  i, sqlite3_column_text(stmt,0));
 #else
-					fprintf(stdout," #%u: %s\n", i, sqlite3_column_text(stmt,0));
+          fprintf(stdout," #%u: %s\n", i, sqlite3_column_text(stmt,0));
 #endif
-				} else {
-					fprintf(stdout,"%s: %s\n", cmdbuf->defdata[NOMBRE_DBTERM], sqlite3_column_text(stmt,0));
-				}
-			}
-			retc ^= retc;
-			break;
-		case (define):
-			retc = sqlite3_step(stmt);
-			if (retc == SQLITE_DONE) {
-				sqlite3_finalize(stmt);
-				if ((cmdbuf->command & grpcmd) == grpcmd) {
-					fprintf(stdout,"Added definition for %s/%s\n",cmdbuf->defdata[NOMBRE_DBCATG], cmdbuf->defdata[NOMBRE_DBTERM]);
-				} else {
-					fprintf(stdout,"Added definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
-				}
-				retc ^= retc;
-			} else if (retc == SQLITE_CONSTRAINT) {
-				/* Definition already exists, reset VM and run altdef function */
-				sqlite3_reset(stmt); sqlite3_finalize(stmt);
-				sqltail = NULL; stmt = NULL;
-				retc = nombre_altdef(cmdbuf);
-				if (retc != 0) {
-					NOMERR("Error creating altdef for %s: returned: %d\n", cmdbuf->defdata[NOMBRE_DBTERM], retc);
-					break;
-				}
-				retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, -1, &stmt, &sqltail);
-				if (retc != SQLITE_OK) { NOMERR("%s %d\n", sqlite3_errstr(retc), retc); } /* Appears to solve a potential race condition */
-				retc = sqlite3_step(stmt);
-				if (retc == SQLITE_MISUSE) { NOMERR("%s","You dun fucked up in the SQL reset\n"); }
-				if (retc == SQLITE_DONE) {
-					fprintf(stdout, "Added new alternative definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
-					retc ^= retc;
-				}
-			}
-			break;
-		case (delete):
-			retc = sqlite3_step(stmt);
-			if (retc == SQLITE_DONE) {
-				sqlite3_finalize(stmt);
-				if ((cmdbuf->command & grpcmd) == grpcmd) {
-					fprintf(stdout, "This path is not yet built.\n");
-				} else {
-					fprintf(stdout, "Deleted \"definitions\" entry for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
-				}
-				retc ^= retc;
-			} else {
-				NOMERR("%s", sqlite3_errstr(retc));
-			}
-			break;
-		case (dumpdb):
-			fprintf(stdout,"Here's what I know:\n");
-			retc = sqlite3_step(stmt);
-			for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
-				fprintf(stdout,"  (%s/%s): %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1), sqlite3_column_text(stmt,2));
-			}
-			if (retc != SQLITE_DONE) {
-				NOMERR("Error processing command! (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
-			} else {
-				retc ^= retc;
-			}
-			sqlite3_finalize(stmt);
-			break;
-		case (search):
-			fprintf(stdout,"Found the following matches:\n");
-			retc = sqlite3_step(stmt);
-			for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
-				fprintf(stdout,"  %s: %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1));
-			}
-			if (retc != SQLITE_DONE) {
-				NOMERR("Error processing command! (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
-			} else {
-				retc ^= retc;
-			}
-			sqlite3_finalize(stmt);
-			break;
+        } else {
+          fprintf(stdout,"%s: %s\n", cmdbuf->defdata[NOMBRE_DBTERM], sqlite3_column_text(stmt,0));
+        }
+      }
+      retc ^= retc;
+      break;
+    case (define):
+      retc = sqlite3_step(stmt);
+      if (retc == SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        if ((cmdbuf->command & grpcmd) == grpcmd) {
+          fprintf(stdout,"Added definition for %s/%s\n",cmdbuf->defdata[NOMBRE_DBCATG], cmdbuf->defdata[NOMBRE_DBTERM]);
+        } else {
+          fprintf(stdout,"Added definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+        }
+        retc ^= retc;
+      } else if (retc == SQLITE_CONSTRAINT) {
+        /* Definition already exists, reset VM and run altdef function */
+        sqlite3_reset(stmt); sqlite3_finalize(stmt);
+        sqltail = NULL; stmt = NULL;
+        retc = nombre_altdef(cmdbuf);
+        if (retc != 0) {
+          NOMERR("Error creating altdef for %s: returned: %d\n", cmdbuf->defdata[NOMBRE_DBTERM], retc);
+          break;
+        }
+        retc = sqlite3_prepare_v2(cmdbuf->dbcon, cmdbuf->gensql, -1, &stmt, &sqltail);
+        if (retc != SQLITE_OK) { NOMERR("%s %d\n", sqlite3_errstr(retc), retc); } /* Appears to solve a potential race condition */
+        retc = sqlite3_step(stmt);
+        if (retc == SQLITE_MISUSE) { NOMERR("%s","You dun fucked up in the SQL reset\n"); }
+        if (retc == SQLITE_DONE) {
+          fprintf(stdout, "Added new alternative definition for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+          retc ^= retc;
+        }
+      }
+      break;
+    case (delete):
+      retc = sqlite3_step(stmt);
+      if (retc == SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        if ((cmdbuf->command & grpcmd) == grpcmd) {
+          fprintf(stdout, "This path is not yet built.\n");
+        } else {
+          fprintf(stdout, "Deleted \"definitions\" entry for %s\n", cmdbuf->defdata[NOMBRE_DBTERM]);
+        }
+        retc ^= retc;
+      } else {
+        NOMERR("%s", sqlite3_errstr(retc));
+      }
+      break;
+    case (dumpdb):
+      fprintf(stdout,"Here's what I know:\n");
+      retc = sqlite3_step(stmt);
+      for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
+        fprintf(stdout,"  (%s/%s): %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1), sqlite3_column_text(stmt,2));
+      }
+      if (retc != SQLITE_DONE) {
+        NOMERR("Error processing command! (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+      } else {
+        retc ^= retc;
+      }
+      sqlite3_finalize(stmt);
+      break;
+    case (search):
+      fprintf(stdout,"Found the following matches:\n");
+      retc = sqlite3_step(stmt);
+      for (; retc == SQLITE_ROW; retc = sqlite3_step(stmt)) {
+        fprintf(stdout,"  %s: %s\n", sqlite3_column_text(stmt,0), sqlite3_column_text(stmt,1));
+      }
+      if (retc != SQLITE_DONE) {
+        NOMERR("Error processing command! (%s)\n", sqlite3_errstr(sqlite3_errcode(cmdbuf->dbcon)));
+      } else {
+        retc ^= retc;
+      }
+      sqlite3_finalize(stmt);
+      break;
     case (new):
       retc = sqlite3_step(stmt);
       if (retc == SQLITE_DONE) {
@@ -298,33 +298,33 @@ NEW_GROUP_ERROR:
       }
       retc = sqlite3_finalize(stmt);
       break;
-		default:
-			/* Should not be reachable */
-			NOMERR("%s\n", "It should not be possible to reach this code!");
-			sqlite3_finalize(stmt);
-			return(retc);
-	}
+    default:
+      /* Should not be reachable */
+      NOMERR("%s\n", "It should not be possible to reach this code!");
+      sqlite3_finalize(stmt);
+      return(retc);
+  }
 
 EXIT:
-	if (dbg) {
-		NOMDBG("Returning %d (%s) to caller\n", retc, sqlite3_errstr(retc));
-	}
-	return(retc);
+  if (dbg) {
+    NOMDBG("Returning %d (%s) to caller\n", retc, sqlite3_errstr(retc));
+  }
+  return(retc);
 }
 
 int
 nomdb_impt(nomcmd * restrict cmdbuf) {
-	int retc;
-	retc = 0;
-	if (dbg) {
-		NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
-	}
-	if (cmdbuf == NULL) {
-		NOMERR("%s", "Given invalid input!\n");
-		retc = BADARGS;
-	}
-	if (dbg) {
-		NOMDBG("Returning %d to caller\n", retc);
-	}
-	return(retc);
+  int retc;
+  retc = 0;
+  if (dbg) {
+    NOMDBG("Entering with cmdbuf = %p\n", (void *)cmdbuf);
+  }
+  if (cmdbuf == NULL) {
+    NOMERR("%s", "Given invalid input!\n");
+    retc = BADARGS;
+  }
+  if (dbg) {
+    NOMDBG("Returning %d to caller\n", retc);
+  }
+  return(retc);
 }

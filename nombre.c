@@ -97,93 +97,93 @@ bool dbg = false;
 
 int
 main(int ac, char **av) {
-	int retc, ch;
-	uint8_t flags;
-	/* Ensure all pointer members are initialized as NULL */
-	nomcmd cmd = { .dbcon = NULL };
-	ch = retc = 0;
-	flags = 0;
+  int retc, ch;
+  uint8_t flags;
+  /* Ensure all pointer members are initialized as NULL */
+  nomcmd cmd = { .dbcon = NULL };
+  ch = retc = 0;
+  flags = 0;
 
-	/* Bail early if no arguments are given */
-	if (ac == 0) {
-		usage();
-		return(ac);
-	}
-	/* Initialize the SQLite3 library */
-	sqlite3_initialize();
-	opterr ^= opterr;
-	while ((ch = getopt(ac, av, "d:i:f:vDIh")) != -1) {
-		switch (ch) {
-			case 'h':
-				flags |= HELPME;
-				break;
-			case 'd':
-				memccpy(cmd.filedata[NOMBRE_DBFILE], optarg, 0, (size_t)PATHMAX);
-				break;
-			case 'i':
-				flags |= INTSQL;
-				memccpy(cmd.filedata[NOMBRE_INITSQL], optarg, 0, (size_t)PATHMAX);
-				break;
-			case 'f':
-				flags |= DBEXCH;
-				memccpy(cmd.filedata[NOMBRE_IOFILE], optarg, 0, (size_t)PATHMAX);
-				break;
-			case 'v':
-				flags |= DBTEST;
-				break;
-			case 'I':
-				flags |= DBINIT;
-				break;
-			case 'D':
-				dbg = true;
-				break;
+  /* Bail early if no arguments are given */
+  if (ac == 0) {
+    usage();
+    return(ac);
+  }
+  /* Initialize the SQLite3 library */
+  sqlite3_initialize();
+  opterr ^= opterr;
+  while ((ch = getopt(ac, av, "d:i:f:vDIh")) != -1) {
+    switch (ch) {
+      case 'h':
+        flags |= HELPME;
+        break;
+      case 'd':
+        memccpy(cmd.filedata[NOMBRE_DBFILE], optarg, 0, (size_t)PATHMAX);
+        break;
+      case 'i':
+        flags |= INTSQL;
+        memccpy(cmd.filedata[NOMBRE_INITSQL], optarg, 0, (size_t)PATHMAX);
+        break;
+      case 'f':
+        flags |= DBEXCH;
+        memccpy(cmd.filedata[NOMBRE_IOFILE], optarg, 0, (size_t)PATHMAX);
+        break;
+      case 'v':
+        flags |= DBTEST;
+        break;
+      case 'I':
+        flags |= DBINIT;
+        break;
+      case 'D':
+        dbg = true;
+        break;
 
-			/* This may need to be redone later */
-			case '?':
-				BADFLAG(av[(optind - 1)]);
-				break;
-			default:
-				break;
-		}
-	}
+      /* This may need to be redone later */
+      case '?':
+        BADFLAG(av[(optind - 1)]);
+        break;
+      default:
+        break;
+    }
+  }
 
-	/* Update the argument counter and vector pointer to the end of processed arguments */
-	ac -= optind;
-	av += optind;
+  /* Update the argument counter and vector pointer to the end of processed arguments */
+  ac -= optind;
+  av += optind;
 
-	if (dbg) {
-		NOMDBG("Size of cmd: %lu, passing off to cook()\n", sizeof(cmd));
-	}
-	retc = cook(&flags, &cmd, (const char **)av);
-	if (cmd.dbcon != NULL) {
-		sqlite3_close_v2(cmd.dbcon);
-	}
-	/* All SQLite3 objects should be deallocated before this point */
-	sqlite3_shutdown();
-	return(retc);
+  if (dbg) {
+    NOMDBG("Size of cmd: %lu, passing off to cook()\n", sizeof(cmd));
+  }
+  retc = cook(&flags, &cmd, (const char **)av);
+  if (cmd.dbcon != NULL) {
+    sqlite3_close_v2(cmd.dbcon);
+  }
+  /* All SQLite3 objects should be deallocated before this point */
+  sqlite3_shutdown();
+  return(retc);
 }
 
 inline static void 
 usage(void) {
-	fprintf(stdout,"%s: A simple, local definition database\n", __progname);
-	fprintf(stdout,"\t%s [-DIv] -d database -i initfile -f I/O file [subcommand] term...\n"
-			"\t  -D Enable run-time debug printouts\n"
-			"\t  -I Initialize the database\n"
-			"\t  -v Perform a verification test on the database\n"
-			"\t  -i Initialization SQL script to use (only useful with -I)\n"
-			"\t  -d The location of the nombre database (default: %s%s%s)\n"
-			"\t  -f Use the given file for import/export operations\n\n"
-			"Subcommands:\n"
-			"\t(def)ine: Look up a definition\n"
-			"\t(add)def: Add a new definition to the database\n"
-			"\t(key)word: Perform a keyword search on saved entries\n"
-			"\t(del)ete: Delete a term or group from the database\n"
-			"\tlist (lst): List the contents of the database\n"
-			"Groups:\n"
-			"\t(grp)cmd: Modify the command to operate on groups instead of just terms\n"
-			,__progname, "~", NOMBRE_DB_DIRECT, NOMBRE_DB_NAME);
+  fprintf(stdout,"%s: A simple, local definition database\n", __progname);
+  fprintf(stdout,"\t%s [-DIv] -d database -i initfile -f I/O file [subcommand] term...\n"
+      "\t  -D Enable run-time debug printouts\n"
+      "\t  -I Initialize the database\n"
+      "\t  -v Perform a verification test on the database\n"
+      "\t  -i Initialization SQL script to use (only useful with -I)\n"
+      "\t  -d The location of the nombre database (default: %s%s%s)\n"
+      "\t  -f Use the given file for import/export operations\n\n"
+      "Subcommands:\n"
+      "\t(def)ine: Look up a definition\n"
+      "\t(add)def: Add a new definition to the database\n"
+      "\t(key)word: Perform a keyword search on saved entries\n"
+      "\t(del)ete: Delete a term or group from the database\n"
+      "\tlist (lst): List the contents of the database\n"
+      "Groups:\n"
+      "\t(grp)cmd: Modify the command to operate on groups instead of just terms\n"
+      ,__progname, "~", NOMBRE_DB_DIRECT, NOMBRE_DB_NAME);
 
-	return; /* Gracefully return to caller */
+  return; /* Gracefully return to caller */
 }
 
 /*
@@ -192,46 +192,46 @@ usage(void) {
  */
 int
 cook(uint8_t * restrict flags, nomcmd * restrict cmdbuf, const char ** restrict argstr) {
-	int retc;
-	retc = 0;
+  int retc;
+  retc = 0;
 
-	if (dbg) {
-		NOMDBG("Current flag setting: %u\n", *flags);
-	}
+  if (dbg) {
+    NOMDBG("Current flag setting: %u\n", *flags);
+  }
 
-	/* Test the status of the bits in *flags */
-	if ((*flags & HELPME) == HELPME) {
-		usage();
-		return(retc);
-	} else {
-		switch (*flags & (uint8_t)(0x8F)) {
-			/*
-			 * Initialize the database, but use the default construction method or environmental variable
-			 */
-			case (DBINIT|INTSQL):
-				if ((retc = nom_getdbn(cmdbuf->filedata[0])) == NOM_OK) {
-					retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1], cmdbuf);
-				} else {
-					NOMERR("%s\n", "Failed to get database name!\n");
-				}
-				break;
-			case (DBTEST):
-				NOMWRN("%s\n\tExiting...\n", "The self-test functionality is not yet implemented!");
-				return(NOM_OK);
-			case (DBEXCH):
-				NOMWRN("%s\n\tExiting...\n", "The database interchange functionality is not yet implemented!");
-				return(NOM_OK);
-			/*
-			 * No behaviour changing flags passed, default behaviour
-			 */
-			default: 
-				retc = buildcmd(cmdbuf, argstr);
-				break;
-		}
-	}
+  /* Test the status of the bits in *flags */
+  if ((*flags & HELPME) == HELPME) {
+    usage();
+    return(retc);
+  } else {
+    switch (*flags & (uint8_t)(0x8F)) {
+      /*
+       * Initialize the database, but use the default construction method or environmental variable
+       */
+      case (DBINIT|INTSQL):
+        if ((retc = nom_getdbn(cmdbuf->filedata[0])) == NOM_OK) {
+          retc = nom_initdb(cmdbuf->filedata[0], cmdbuf->filedata[1], cmdbuf);
+        } else {
+          NOMERR("%s\n", "Failed to get database name!\n");
+        }
+        break;
+      case (DBTEST):
+        NOMWRN("%s\n\tExiting...\n", "The self-test functionality is not yet implemented!");
+        return(NOM_OK);
+      case (DBEXCH):
+        NOMWRN("%s\n\tExiting...\n", "The database interchange functionality is not yet implemented!");
+        return(NOM_OK);
+      /*
+       * No behaviour changing flags passed, default behaviour
+       */
+      default: 
+        retc = buildcmd(cmdbuf, argstr);
+        break;
+    }
+  }
 
-	if (dbg){
-		NOMDBG("Returning %d to caller\n", retc);
-	}
-	return(retc);
+  if (dbg){
+    NOMDBG("Returning %d to caller\n", retc);
+  }
+  return(retc);
 }
